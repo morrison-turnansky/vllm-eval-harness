@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -218,6 +218,11 @@ def main() -> None:
     y_true = [int(golden[k]) for k in keys]
     y_phase1 = [int(phase1.get(k, False)) for k in keys]
     y_phase2 = [int(phase2.get(k, False)) for k in keys]
+
+    f1_p1 = f1_score(y_true, y_phase1)
+    f1_p2 = f1_score(y_true, y_phase2)
+    print(f"F1 (Phase 1 only):    {f1_p1:.3f}")
+    print(f"F1 (Phase 1 + Phase 2): {f1_p2:.3f}")
 
     print_report("Phase 1 Only (audit-agent)", y_true, y_phase1)
     print_report("Phase 1 + Phase 2 (audit-agent + review-agent, no expert)", y_true, y_phase2)
