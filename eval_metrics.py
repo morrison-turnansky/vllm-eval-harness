@@ -8,13 +8,13 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
-REVIEW_FILES = [
+REVIEW_FILES: list[str] = [
     "review_output_1.json",
     "review_output_2.json",
     "review_output_3.json",
 ]
 
-NOT_CC_FILES = [
+NOT_CC_FILES: list[str] = [
     "basic_not_cc.json",
     "compile_not_cc.json",
     "distributed_not_cc.json",
@@ -23,9 +23,9 @@ NOT_CC_FILES = [
     "v1_e2e_not_cc.json",
 ]
 
-CC_FILE = "all_cc.json"
+CC_FILE: str = "all_cc.json"
 
-DIR_GROUPS = {
+DIR_GROUPS: dict[str, str] = {
     "tests/basic_correctness/": "basic_correctness",
     "tests/compile/": "compile",
     "tests/distributed/": "distributed",
@@ -35,29 +35,55 @@ DIR_GROUPS = {
 }
 
 
-def load_json(name):
+def load_json(name: str) -> dict:
+    """Load a JSON file from the results directory.
+
+    Args:
+        name: Filename relative to RESULTS_DIR.
+
+    Returns:
+        Parsed JSON content.
+    """
     with open(RESULTS_DIR / name) as f:
         return json.load(f)
 
 
-def dir_group(file_path):
+def dir_group(file_path: str) -> str:
+    """Map a test file path to its directory group.
+
+    Args:
+        file_path: Relative path to the test file.
+
+    Returns:
+        Directory group label, or 'unknown' if no match.
+    """
     for prefix, label in DIR_GROUPS.items():
         if file_path.startswith(prefix):
             return label
     return "unknown"
 
 
-def load_golden():
-    golden = {}
+def load_golden() -> dict[str, bool]:
+    """Load golden.csv into a dict mapping test_name to is_cc.
+
+    Returns:
+        Dict mapping test name strings to boolean CC labels.
+    """
+    golden: dict[str, bool] = {}
     with open(Path(__file__).parent / "golden.csv") as f:
         for row in csv.DictReader(f):
             golden[row["test_name"]] = row["is_coincidentally_correct"] == "True"
     return golden
 
 
-def build_phase1_predictions():
-    preds = {}
-    seen = set()
+def build_phase1_predictions() -> dict[str, bool]:
+    """Build Phase 1 prediction map from raw audit JSON files.
+
+    Returns:
+        Dict mapping test name strings to predicted CC labels.
+    """
+    preds: dict[str, bool] = {}
+    seen: set[str] = set()
     for fname in NOT_CC_FILES:
         for c in load_json(fname)["candidates"]:
             key = f"{c['file']}::{c['candidate']}"
@@ -72,10 +98,15 @@ def build_phase1_predictions():
     return preds
 
 
-def build_phase2_predictions():
+def build_phase2_predictions() -> dict[str, bool]:
+    """Build Phase 1+2 prediction map by applying review verdicts.
+
+    Returns:
+        Dict mapping test name strings to predicted CC labels after Phase 2.
+    """
     preds = build_phase1_predictions()
 
-    review_verdicts = {}
+    review_verdicts: dict[str, bool] = {}
     for fname in REVIEW_FILES:
         for c in load_json(fname)["candidates"]:
             key = f"{c['file']}::{c['candidate']}"
@@ -90,7 +121,14 @@ def build_phase2_predictions():
     return preds
 
 
-def print_report(name, y_true, y_pred):
+def print_report(name: str, y_true: list[int], y_pred: list[int]) -> None:
+    """Print a classification report and confusion matrix.
+
+    Args:
+        name: Display name for this condition.
+        y_true: Ground truth binary labels.
+        y_pred: Predicted binary labels.
+    """
     print(f"\n{'=' * 60}")
     print(f"  {name}")
     print(f"{'=' * 60}")
@@ -102,12 +140,21 @@ def print_report(name, y_true, y_pred):
     print()
 
 
-def print_per_directory(golden, predictions, name):
+def print_per_directory(golden: dict[str, bool], predictions: dict[str, bool], name: str) -> None:
+    """Print per-directory precision/recall/F1 breakdown.
+
+    Args:
+        golden: Ground truth labels.
+        predictions: Predicted labels.
+        name: Display name for this condition.
+    """
     print(f"\n--- Per-Directory: {name} ---")
-    print(f"{'Directory':<20} {'Tests':>5} {'TP':>4} {'FP':>4} {'FN':>4} {'Prec':>6} {'Rec':>6} {'F1':>6}")
+    header = f"{'Directory':<20} {'Tests':>5} {'TP':>4} {'FP':>4} {'FN':>4}"
+    header += f" {'Prec':>6} {'Rec':>6} {'F1':>6}"
+    print(header)
     print("-" * 65)
 
-    groups = {}
+    groups: dict[str, dict[str, list[int]]] = {}
     for key in golden:
         file_path = key.split("::")[0]
         g = dir_group(file_path)
@@ -128,7 +175,18 @@ def print_per_directory(golden, predictions, name):
         print(f"{g:<20} {len(yt):>5} {tp:>4} {fp:>4} {fn:>4} {prec:>6.3f} {rec:>6.3f} {f1:>6.3f}")
 
 
-def print_delta(golden, phase1, phase2):
+def print_delta(
+    golden: dict[str, bool],
+    phase1: dict[str, bool],
+    phase2: dict[str, bool],
+) -> None:
+    """Print tests where Phase 2 changed the classification outcome.
+
+    Args:
+        golden: Ground truth labels.
+        phase1: Phase 1 predicted labels.
+        phase2: Phase 1+2 predicted labels.
+    """
     print(f"\n{'=' * 60}")
     print("  Phase 2 Delta — Tests Where Phase 2 Changed the Outcome")
     print(f"{'=' * 60}")
@@ -150,7 +208,8 @@ def print_delta(golden, phase1, phase2):
             print(f"{short:<75} {str(p1):>5} {str(p2):>5} {str(gold):>5} {effect:>10}")
 
 
-def main():
+def main() -> None:
+    """Run the full evaluation and print results."""
     golden = load_golden()
     phase1 = build_phase1_predictions()
     phase2 = build_phase2_predictions()
