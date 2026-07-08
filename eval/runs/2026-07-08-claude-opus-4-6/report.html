@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vllm-test-audit-eval — 2026-07-08-claude-opus-4-6</title>
+<script>
+(function () {
+  try {
+    var stored = localStorage.getItem('eval-report-theme');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
+<style>
+:root {
+  --bg: #cbd1da;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-soft: #475569;
+  --accent: #2563eb;
+  --accent-strong: #1e3a8a;
+  --accent-soft: #dbeafe;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --success-border: #86efac;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --danger-border: #fca5a5;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --warning-border: #fcd34d;
+  --neutral-soft: #f1f5f9;
+  --neutral-border: #cbd5e1;
+  --code-bg: #eef2f7;
+  --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-strong: 0 4px 12px rgba(15,23,42,.08), 0 1px 3px rgba(15,23,42,.05);
+  --diff-add-bg: #e6ffec;
+  --diff-add-strong: #acf2bd;
+  --diff-del-bg: #ffeef0;
+  --diff-del-strong: #fdb8c0;
+  --diff-hdr-bg: #f0f0f0;
+  --case-pass-accent: #16a34a;
+  --case-fail-accent: #dc2626;
+  --case-pw-a-accent: #16a34a;
+  --case-pw-b-accent: #dc2626;
+  --case-pw-tie-accent: #d97706;
+  --case-pw-error-accent: #94a3b8;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #0f1729;
+  --surface-2: #162033;
+  --surface-3: #1e293b;
+  --border: #1e2c44;
+  --border-strong: #334155;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-soft: #cbd5e1;
+  --accent: #60a5fa;
+  --accent-strong: #93c5fd;
+  --accent-soft: #1e3a8a;
+  --success: #4ade80;
+  --success-soft: #14532d;
+  --success-border: #166534;
+  --danger: #f87171;
+  --danger-soft: #7f1d1d;
+  --danger-border: #991b1b;
+  --warning: #fbbf24;
+  --warning-soft: #78350f;
+  --warning-border: #92400e;
+  --neutral-soft: #1e293b;
+  --neutral-border: #334155;
+  --code-bg: #1e293b;
+  --shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-strong: 0 4px 14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
+  --diff-add-bg: rgba(74,222,128,.08);
+  --diff-add-strong: rgba(74,222,128,.28);
+  --diff-del-bg: rgba(248,113,113,.08);
+  --diff-del-strong: rgba(248,113,113,.28);
+  --diff-hdr-bg: #1e293b;
+  --case-pass-accent: #4ade80;
+  --case-fail-accent: #f87171;
+  --case-pw-a-accent: #4ade80;
+  --case-pw-b-accent: #f87171;
+  --case-pw-tie-accent: #fbbf24;
+  --case-pw-error-accent: #64748b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.55; max-width: 1200px; margin: 0 auto; padding: 1.5em 1.5em 4em; color: var(--text); background: var(--bg); transition: background-color .15s ease, color .15s ease; }
+h1 { padding-bottom: 0; margin: 0 0 0.55em; font-size: 1.9em; letter-spacing: -0.015em; font-weight: 700; color: var(--accent-strong); }
+.report-header { margin: 0 0 1.6em; padding-bottom: 1.1em; border-bottom: 2px solid var(--border-strong); }
+.header-meta { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.meta-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 13px 5px 12px; font-size: 0.95em; color: var(--text); box-shadow: var(--shadow); line-height: 1.4; }
+.meta-chip .meta-label { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 700; }
+.meta-chip code { background: var(--code-bg); padding: 1px 7px; border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.92em; color: var(--text); }
+h2 { margin-top: 1.5em; letter-spacing: -0.005em; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; margin: 1em 0; font-variant-numeric: tabular-nums; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+th, td { border-bottom: 1px solid var(--border); padding: 9px 12px; text-align: left; }
+tr:last-child td { border-bottom: none; }
+th { background: var(--surface-2); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; }
+tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 50%, transparent); }
+tbody tr:hover td { background: var(--accent-soft); }
+.pass, .fail, .warn, .skip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.85em; font-weight: 600; line-height: 1.4; border: 1px solid transparent; }
+.pass { color: var(--success); background: var(--success-soft); border-color: var(--success-border); }
+.fail { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-border); }
+.warn { color: var(--warning); background: var(--warning-soft); border-color: var(--warning-border); }
+.skip { color: var(--text-muted); background: var(--neutral-soft); border-color: var(--neutral-border); font-weight: 500; }
+.metric-row td:last-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.judge-type { font-size: 0.85em; color: var(--text-muted); }
+.subsection-heading { margin-top: 1.4em; font-size: 0.95em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.model-heading { margin: 1.2em 0 0.4em; font-size: 0.92em; font-weight: 600; color: var(--text-soft); }
+.model-heading code { background: var(--code-bg); padding: 2px 8px; border-radius: 4px; font-size: 0.95em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
+.config-table { table-layout: fixed; }
+.config-table th:first-child, .config-table td:first-child { width: 22%; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.9em 1.6em; margin: 0.4em 0 0.8em; padding: 0; }
+.kv { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.kv dt { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin: 0; }
+.kv dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; word-break: break-word; line-height: 1.35; color: var(--text); }
+.kv dd.bl { color: var(--text-muted); font-size: 0.85em; font-weight: 400; }
+.kv dd.bl::before { content: "vs "; opacity: 0.7; }
+.kv dd.bl .delta { font-weight: 600; font-size: 0.95em; padding-left: 4px; }
+details.eval-params { margin: 1.2em 0 0; padding: 0; }
+details.eval-params > summary { cursor: pointer; padding: 6px 0; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; min-width: 0; }
+details.eval-params > summary::-webkit-details-marker { display: none; }
+details.eval-params > summary::before { content: "▸"; font-size: 0.9em; transition: transform .15s ease; display: inline-block; color: var(--text-muted); flex-shrink: 0; }
+details.eval-params[open] > summary::before { transform: rotate(90deg); }
+details.eval-params > summary:hover .eval-params-label { color: var(--accent); }
+.eval-params-label { font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; flex-shrink: 0; }
+.eval-params-preview { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85em; color: var(--text-soft); padding-left: 8px; border-left: 1px solid var(--border-strong); margin-left: 2px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.eval-params[open] .eval-params-preview { display: none; }
+details.eval-params > .config-grid { margin-top: 0.5em; }
+details.eval-params > .run-command { margin: 0.6em 0 0; }
+.run-command { margin: 0.4em 0 1em; }
+.run-command-label { display: block; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.run-command pre { margin: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; overflow-x: auto; font-size: 0.85em; line-height: 1.4; }
+.run-command code { background: transparent; padding: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); white-space: pre; }
+.usage-table th code { background: var(--code-bg); padding: 2px 7px; border-radius: 4px; font-size: 0.95em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); text-transform: none; letter-spacing: 0; font-weight: 500; }
+.usage-table td { font-variant-numeric: tabular-nums; }
+.usage-table .cur-val { display: block; font-weight: 500; }
+.usage-table .bl-val { display: block; font-size: 0.82em; color: var(--text-muted); margin-top: 1px; }
+.usage-table .bl-val::before { content: "vs "; opacity: 0.7; }
+.usage-table .delta { font-weight: 600; font-size: 0.9em; padding-left: 4px; }
+.delta-good { color: var(--success); }
+.delta-bad { color: var(--danger); }
+.delta-flat { color: var(--text-muted); font-weight: 500; }
+.baseline-row td { background: var(--surface-2); font-style: italic; color: var(--text-muted); }
+.rationale { font-size: 0.88em; color: var(--text-soft); }
+.rationale p { margin: 0 0 0.5em; line-height: 1.5; }
+.rationale p:last-child { margin-bottom: 0; }
+.rationale ul, .rationale ol { margin: 0.3em 0 0.5em 1.2em; padding: 0; }
+.rationale li { margin: 0.2em 0; }
+.rationale code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 0.9em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.rationale strong { color: var(--text); }
+details.case { margin: 1em 0; border: 1px solid var(--border); border-left-width: 4px; border-radius: 8px; padding: 1em 1.2em; background: var(--surface); box-shadow: var(--shadow); }
+details.case.case-pass { border-left-color: var(--case-pass-accent); }
+details.case.case-fail { border-left-color: var(--case-fail-accent); }
+details.case.case-pw-a { border-left-color: var(--case-pw-a-accent); }
+details.case.case-pw-b { border-left-color: var(--case-pw-b-accent); }
+details.case.case-pw-tie { border-left-color: var(--case-pw-tie-accent); }
+details.case.case-pw-error { border-left-color: var(--case-pw-error-accent); }
+details.case > summary { cursor: pointer; font-weight: 600; padding: 0.2em 0; font-size: 1.02em; list-style: none; display: flex; align-items: center; gap: 0.6em; }
+details.case > summary::-webkit-details-marker { display: none; }
+details.case > summary::before { content: "▸"; color: var(--text-muted); transition: transform .15s ease; display: inline-block; }
+details.case[open] > summary::before { transform: rotate(90deg); }
+details.case > summary:hover { color: var(--accent); }
+.info-box { background: var(--accent-soft); border: 1px solid var(--border); border-radius: 6px; padding: 0.8em 1em; margin: 0.6em 0; font-size: 0.9em; }
+.feedback-box { background: var(--warning-soft); border: 1px solid var(--warning-border); border-radius: 6px; padding: 0.8em 1em; margin: 0.6em 0; font-size: 0.9em; color: var(--text); }
+.file-badge { display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 5px; padding: 3px 10px; margin: 1em 0 0.5em 0; color: var(--text-soft); }
+.pw-badge { display: inline-block; font-size: 0.78em; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-left: 8px; border: 1px solid transparent; letter-spacing: 0.04em; }
+.pw-win { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
+.pw-loss { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+.pw-tie { background: var(--warning-soft); color: var(--warning); border-color: var(--warning-border); }
+.pw-error { background: var(--neutral-soft); color: var(--text-muted); border-color: var(--neutral-border); }
+.stab-wrap { display: inline-flex; align-items: center; gap: 5px; }
+.stab-bar { vertical-align: middle; }
+.stab-label { font-size: 0.8em; color: var(--text-muted); }
+.ascii-range { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.85em; letter-spacing: 1px; color: var(--text-muted); margin-left: 6px; white-space: pre; }
+.ascii-range .med { color: var(--accent); font-weight: 700; }
+.sample-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0.5em; }
+.sample-tab { padding: 3px 10px; font-size: 0.82em; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: var(--text-muted); background: none; }
+.sample-tab:hover { background: var(--surface-2); }
+.sample-tab[aria-selected="true"] { color: var(--text); background: var(--surface); border-color: var(--border); border-bottom: 2px solid var(--surface); margin-bottom: -2px; font-weight: 600; }
+.sample-tab .tab-score { font-weight: 700; margin-right: 4px; }
+.sample-panel { display: none; }
+.sample-panel.active { display: block; }
+.diff-table { width: 100%; border-collapse: collapse; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.82em; table-layout: fixed; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.diff-table td { padding: 1px 6px; vertical-align: top; white-space: pre-wrap; word-wrap: break-word; border: 1px solid var(--border); }
+.diff-table .ln { width: 35px; min-width: 35px; color: var(--text-muted); text-align: right; background: var(--surface-2); user-select: none; white-space: nowrap; }
+.diff-table .left, .diff-table .right { width: calc(50% - 35px); background: var(--surface); }
+.diff-table .sep { width: 1px; padding: 0; background: var(--border-strong); }
+.diff-table tr.mod .left { background: var(--diff-del-bg); }
+.diff-table tr.mod .right { background: var(--diff-add-bg); }
+.diff-table tr.add .right { background: var(--diff-add-bg); }
+.diff-table tr.add .left { background: var(--surface-2); }
+.diff-table tr.del .left { background: var(--diff-del-bg); }
+.diff-table tr.del .right { background: var(--surface-2); }
+.diff-table tr.hdr td { background: var(--diff-hdr-bg); color: var(--text-muted); font-weight: 600; }
+.diff-table .wdel { background: var(--diff-del-strong); border-radius: 2px; padding: 0 2px; }
+.diff-table .wadd { background: var(--diff-add-strong); border-radius: 2px; padding: 0 2px; }
+pre.output { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 0.9em 1em; font-size: 0.88em; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.html-preview { width: 100%; height: 80vh; max-height: 2000px; border: 1px solid var(--border-strong); border-radius: 6px; margin: 0.5em 0; background: #fff; color-scheme: light; }
+.section, .analysis { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 1.3em 1.6em 1.4em; margin: 1.5em 0; box-shadow: var(--shadow); }
+.section > h2:first-child, h2.section-heading { margin: 0 0 0.7em; padding: 0; border: none; font-size: 1.3em; color: var(--accent-strong); letter-spacing: -0.005em; }
+h2.section-heading { margin: 1.8em 0 0.8em; }
+.section-intro { color: var(--text-muted); margin: 0 0 1em; font-size: 0.92em; }
+.section > table:last-child, .section > details:last-child { margin-bottom: 0; }
+.analysis { border-left-width: 5px; margin-bottom: 2em; box-shadow: var(--shadow-strong); }
+.analysis-banner { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.3em; }
+.analysis-banner h2 { margin: 0; padding: 0; border: none; font-size: 1.4em; color: var(--accent-strong); letter-spacing: -0.005em; }
+.analysis-body h2 { margin-top: 1.6em; padding-bottom: 0.35em; font-size: 1.1em; color: var(--accent-strong); border-bottom: 1px solid var(--border); }
+.analysis-body h2:first-of-type { margin-top: 0; font-size: 1.2em; border-bottom-width: 2px; padding-bottom: 0.4em; border-bottom-color: var(--accent); }
+.analysis-body h3 { margin-top: 1em; color: var(--text-soft); font-size: 1em; }
+.analysis-body li { margin: 0.3em 0; line-height: 1.55; }
+.analysis-body p { line-height: 1.6; }
+.analysis-body code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
+.analysis-body table { font-size: 0.92em; }
+.analysis-body hr { border: none; border-top: 1px dashed var(--border-strong); margin: 1.4em 0; }
+.section-intro code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+#theme-toggle { position: fixed; top: 16px; right: 16px; z-index: 1000; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 999px; width: 38px; height: 38px; padding: 0; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); transition: background-color .15s ease, transform .15s ease, border-color .15s ease; }
+#theme-toggle:hover { background: var(--surface-2); border-color: var(--accent); transform: scale(1.05); }
+#theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media print {
+  :root { color-scheme: light; --bg: #fff; --surface: #fff; --text: #000; --text-muted: #444; }
+  #theme-toggle { display: none; }
+  .section, .analysis, details.case { box-shadow: none; break-inside: avoid; }
+}
+
+/* Image artifacts */
+.img-artifact { margin: 0.5em 0; }
+.img-artifact img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.img-label { display: inline-block; font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 999px; margin-bottom: 6px; }
+.img-label-gen { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+.img-label-ref { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+.img-label-bl { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning-border); }
+
+/* Comparison widget */
+.img-compare { margin: 0.8em 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.img-compare-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.img-compare-tab { padding: 7px 16px; font-size: 0.85em; font-weight: 600; color: var(--text-muted); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+.img-compare-tab:hover { color: var(--text); }
+.img-compare-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.img-compare-panel { display: none; padding: 1em; }
+.img-compare-panel.active { display: block; }
+
+/* Side-by-side */
+.img-compare-sbs { display: flex; gap: 1em; }
+.img-compare-sbs > div { flex: 1; min-width: 0; }
+.img-compare-sbs img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+
+/* Swipe */
+.img-compare-swipe-imgs { display: grid; border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden; }
+.img-compare-swipe-imgs > img { grid-area: 1/1; display: block; width: 100%; height: auto; }
+.img-compare-swipe-imgs .swipe-ref { grid-area: 1/1; z-index: 1; background: #fff; clip-path: inset(0 50% 0 0); }
+.img-compare-swipe-imgs .swipe-ref img { display: block; width: 100%; height: auto; }
+.img-compare-swipe-imgs .swipe-line { grid-area: 1/1; z-index: 2; justify-self: start; width: 3px; background: var(--accent); pointer-events: none; margin-left: 50%; }
+.img-compare-swipe input[type="range"] { display: block; width: 100%; margin: 8px 0 0; accent-color: var(--accent); }
+.img-compare-swipe-labels { display: flex; justify-content: space-between; padding: 4px 1em; font-size: 0.82em; color: var(--text-muted); }
+
+/* Onion */
+.img-compare-onion-wrap { display: grid; border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden; }
+.img-compare-onion-wrap > img { grid-area: 1/1; display: block; width: 100%; height: auto; }
+.img-compare-onion-wrap .onion-top { grid-area: 1/1; background: #fff; }
+.img-compare-onion-wrap .onion-top img { display: block; width: 100%; height: auto; }
+.img-compare-onion input[type="range"] { display: block; width: 100%; margin: 8px 0 0; accent-color: var(--accent); }
+.img-compare-onion .onion-label { text-align: center; font-size: 0.82em; color: var(--text-muted); margin-top: 2px; }
+
+/* Diagram source collapsible */
+/* Metrics table */
+.metrics-table { font-size: 0.88em; margin: 0.5em 0; border-collapse: collapse; }
+.metrics-table th { text-align: left; padding: 4px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-weight: 600; color: var(--text-soft); }
+.metrics-table td { padding: 4px 12px; border-bottom: 1px solid var(--border); }
+.metrics-table td:last-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
+
+.diagram-source { margin-top: 0.4em; }
+.diagram-source summary { font-size: 0.85em; color: var(--text-muted); cursor: pointer; padding: 4px 0; }
+.diagram-source summary:hover { color: var(--text); }
+.diagram-source pre { max-height: 400px; overflow-y: auto; }
+
+.reward-overview { overflow-x: auto; margin: 0.8em 0 1.5em; }
+.reward-overview table { font-size: 0.88em; }
+.reward-overview th { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; }
+.reward-overview th.rv-rotate {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  height: 120px; min-width: 28px; padding: 8px 4px;
+  font-size: 0.7em; letter-spacing: 0.04em;
+}
+.reward-overview td { text-align: center; padding: 7px 8px; }
+.reward-overview td:first-child { text-align: left; font-weight: 500; font-size: 0.9em; }
+.rv-reward { font-weight: 700; font-size: 1.05em; font-variant-numeric: tabular-nums; }
+.reward-overview .rv-avg-row td {
+  background: var(--surface-3) !important;
+  font-weight: 700; border-top: 2px solid var(--border-strong);
+}
+.rv-gate-hdr { background: var(--success-soft) !important; color: var(--success) !important; border-bottom: 2px solid var(--success-border) !important; }
+.rv-llm-hdr { background: var(--accent-soft) !important; color: var(--accent) !important; border-bottom: 2px solid var(--accent) !important; }
+.rv-other-hdr { background: var(--warning-soft) !important; color: var(--warning) !important; border-bottom: 2px solid var(--warning-border) !important; }
+</style>
+</head>
+<body>
+<button id="theme-toggle" type="button" aria-label="Toggle theme">☾</button>
+<header class="report-header">
+  <h1>Skill Eval Report</h1>
+  <div class="header-meta"><span class="meta-chip"><span class="meta-label">Run</span><code>2026-07-08-claude-opus-4-6</code></span><span class="meta-chip"><span class="meta-label">Date</span>2026-07-08 18:35</span></div>
+</header>
+<section class="section">
+<h2>Run Configuration</h2>
+<dl class="config-grid">
+<div class="kv"><dt>Model</dt><dd>claude-opus-4-6</dd></div>
+<div class="kv"><dt>Subagent Model</dt><dd>—</dd></div>
+<div class="kv"><dt>Effort</dt><dd>high</dd></div>
+<div class="kv"><dt>Agent</dt><dd>claude-code</dd></div>
+<div class="kv"><dt>Agent Version</dt><dd>2.1.204 (Claude Code)</dd></div>
+<div class="kv"><dt>Duration</dt><dd>3 min</dd></div>
+<div class="kv"><dt>Cost</dt><dd>$0.99</dd></div>
+<div class="kv"><dt>Turns</dt><dd>13</dd></div>
+<div class="kv"><dt>Exit Code</dt><dd>0</dd></div>
+</dl>
+<h3 class="subsection-heading">Model Usage</h3>
+<table class="usage-table">
+<tr><th></th><th><code>claude-opus-4-6</code></th></tr>
+<tr><th>Input tokens (total)</th><td><span class="cur-val">545,151</span></td></tr>
+<tr><th>Output tokens</th><td><span class="cur-val">10,376</span></td></tr>
+<tr><th>Cache read</th><td><span class="cur-val">464,760</span></td></tr>
+<tr><th>Cache write</th><td><span class="cur-val">80,372</span></td></tr>
+<tr><th>Cache hit</th><td><span class="cur-val">85.3%</span></td></tr>
+<tr><th>Cost</th><td><span class="cur-val">$0.99</span></td></tr>
+<tr><th>Cost / turn</th><td><span class="cur-val">$0.0765</span></td></tr>
+<tr><th>Output tokens / turn</th><td><span class="cur-val">798</span></td></tr>
+<tr><th>Cost / Mtok</th><td><span class="cur-val">$1.79</span></td></tr>
+</table>
+<details class="eval-params">
+<summary><span class="eval-params-label">Parameters</span><span class="eval-params-preview">/ Use the audit-agent (subagent_type: vllm-test-audit:audit-agent) to analyze {directory}. The vLLM repo is at /home/devuser/projects/vllm. IMPORTANT: run the agent in the FOREGROUND (run_in_background: false) and wait for it to complete. The agent must write audit-cc.json and audit-not-cc.json to the current working directory. After the agent finishes, verify those files exist and are non-empty.</span></summary>
+<dl class="config-grid">
+<div class="kv"><dt>Execution Mode</dt><dd>case</dd></div>
+<div class="kv"><dt>Max Budget</dt><dd>$5</dd></div>
+<div class="kv"><dt>Timeout</dt><dd>60 min</dd></div>
+<div class="kv"><dt>Effort</dt><dd>high</dd></div>
+</dl>
+<div class="run-command"><span class="run-command-label">Skill Args</span><pre><code>/ Use the audit-agent (subagent_type: vllm-test-audit:audit-agent) to analyze {directory}. The vLLM repo is at /home/devuser/projects/vllm. IMPORTANT: run the agent in the FOREGROUND (run_in_background: false) and wait for it to complete. The agent must write audit-cc.json and audit-not-cc.json to the current working directory. After the agent finishes, verify those files exist and are non-empty.</code></pre></div>
+</details>
+</section>
+<section class="analysis">
+<div class="analysis-banner"><h2>Analysis</h2></div>
+<p class="section-intro">Generated by <strong>Claude Code</strong> (<code>claude-opus-4-6</code>) on <code>2026-07-08 17:30:00+00:00</code> from 2 judge scores across 1 case, plus execution metadata (3 min, $0.99, 13 turns, exit 0). Recommendation leads; failure patterns, root causes, and regressions follow as supporting evidence.</p>
+<div class="analysis-body">
+<h2>Recommendation</h2>
+<p><strong>All judges pass at 100% — the audit skill is working correctly on the basic_correctness case with claude-opus-4-6.</strong></p>
+<p>Classification accuracy achieved 13/13 (100%) against the expert-verified golden.csv, and cost stayed well within the $5.00 budget at $0.99. This is a single-case result (basic_correctness only); broader coverage across all 6 cases is needed before promoting this model/config as production-ready.</p>
+<p><strong>Top actions:</strong></p>
+<ul>
+<li><strong>MEDIUM</strong> — Run the full case suite (all 6 directories) to validate consistency across different test complexity levels</li>
+<li><strong>LOW</strong> — The eval config needed manual fixes for headless execution (permissions, vLLM path, foreground agent mode) — codify these in eval.yaml so future runs work out of the box</li>
+</ul>
+<h2>Summary</h2>
+<table>
+<tr><th>Metric</th><th>Value</th></tr>
+<tr><td>Cases run</td><td>1 (basic_correctness)</td></tr>
+<tr><td>Classification accuracy</td><td>100% (13/13 correct)</td></tr>
+<tr><td>Token efficiency</td><td><span class="pass">PASS</span> ($0.99 / $5.00 budget)</td></tr>
+<tr><td>Duration</td><td>194s</td></tr>
+<tr><td>Total cost</td><td>$0.99</td></tr>
+<tr><td>Turns</td><td>13</td></tr>
+<tr><td>Cache hit rate</td><td>85.3%</td></tr>
+<tr><td>Cost per turn</td><td>$0.076</td></tr>
+<tr><td>Cost per Mtok</td><td>$1.78</td></tr>
+</table>
+<h2>Failure Patterns</h2>
+<p>No failures. All 13 test classifications matched the golden reference exactly.</p>
+<h2>Cost Attribution</h2>
+<p>With a single case producing 2 artifact files (audit-cc.json, audit-not-cc.json) at $0.99 total:</p>
+<ul>
+<li>Cost per artifact: $0.50</li>
+<li>The 85.3% cache hit rate indicates efficient prompt caching across turns</li>
+<li>cost_per_turn ($0.076) and cost_per_mtok ($1.78) are baseline values for claude-opus-4-6 at high effort — no comparison available yet</li>
+</ul>
+<p>The $0.99 cost for 13 test functions is reasonable. The cost scales with test directory size; the <code>lora</code> case (142 functions) and <code>entrypoints</code> case (1302 functions) will be significantly more expensive.</p>
+</div>
+</section>
+<section class="section">
+<h2>Scoring Summary</h2>
+<table>
+<tr><th>Judge</th><th>Type</th><th>Metric</th><th>Value</th><th>Threshold</th><th>Status</th></tr>
+<tr class="metric-row"><td>classification_accuracy</td><td class="judge-type">code</td><td>pass_rate</td><td>100%</td><td>&ge; 90%</td><td><span class="pass">PASS</span></td></tr>
+<tr class="metric-row"><td>token_efficiency</td><td class="judge-type">builtin</td><td>pass_rate</td><td>100%</td><td>&ge; 100%</td><td><span class="pass">PASS</span></td></tr>
+</table>
+</section>
+<section class="section">
+<h2 class="section-heading">Per-Case Reward Overview</h2>
+<p style="font-size:0.9em;color:var(--text-muted);margin:0 0 0.5em;">Reward and all judge scores per case. <span class="pass" style="font-size:0.8em">Gates</span> are binary. <span class="warn" style="font-size:0.8em">LLM judges</span> are scored. <span class="skip" style="font-size:0.8em">Other</span> scores vary.</p>
+<div class="reward-overview"><table>
+<tr><th rowspan="2" style="vertical-align:bottom">Case</th><th rowspan="2" style="vertical-align:bottom">Reward</th><th colspan="2" class="rv-other-hdr" style="text-align:center">Other</th></tr>
+<tr><th class="rv-rotate">Classification Accuracy</th><th class="rv-rotate">Token Efficiency</th></tr>
+<tr><td>basic_correctness</td><td><span class="rv-reward pass">1.0000</span></td><td><span class="pass">PASS</span></td><td><span class="pass">PASS</span></td></tr>
+<tr class="rv-avg-row"><td>Average (1 cases)</td><td><span class="rv-reward pass">1.0000</span></td><td colspan="2"></td></tr>
+</table></div>
+</section>
+<h2 class="section-heading">Per-Case Details</h2>
+<details open class="case case-pass"><summary><span class="pass">basic_correctness</span> <span class="skip">(2/2 pass)</span></summary>
+<table><tr><th>Judge</th><th>Value</th><th>Rationale</th></tr>
+<tr><td>classification_accuracy</td><td><span class="pass">PASS</span></td><td class="rationale"><p>13/13 (100.0%) correct</p></td></tr>
+<tr><td>token_efficiency</td><td><span class="pass">PASS</span></td><td class="rationale"><p>Cost $0.99 within budget $5.00</p></td></tr>
+</table>
+<details open><summary>Input</summary><pre class="output">directory: tests/basic_correctness/</pre></details>
+<details open><summary>Output files</summary>
+<div class="file-badge">audit-cc.json/audit-cc.json</div>
+<pre class="output">{
+  "test_files_in_scope": 4,
+  "candidates_analyzed": 2,
+  "candidates": [
+    {
+      "candidate": "test_models",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 124,
+      "comparison": "HuggingFace greedy vs vLLM greedy (with variants: prompt_embeds, async_scheduling, model_executor)",
+      "oracle": "exact text + token ID equality (check_outputs_equal)",
+      "helper": "check_outputs_equal",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "hf_runner (from conftest.py)",
+      "c1_weak_oracle": "yes \u2014 exact string and token ID equality via check_outputs_equal",
+      "c2_realistic_breakage": "yes \u2014 HF and vLLM use different attention backends, memory layouts, and kernel implementations; FP differences can cause token divergence even with greedy decoding",
+      "c3_no_strong_contract": "yes \u2014 no Strong Contract covers cross-runtime (HF vs vLLM) comparison; enable_prompt_embeds=True variant also falls under Not Strong #9",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "check_outputs_equal(\n    outputs_0_lst=hf_outputs,\n    outputs_1_lst=vllm_outputs,\n    name_0=\"hf\",\n    name_1=\"vllm\",\n)"
+    },
+    {
+      "candidate": "test_models_distributed",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 205,
+      "comparison": "HuggingFace single-GPU greedy vs vLLM TP=2 greedy",
+      "oracle": "exact text + token ID equality (check_outputs_equal)",
+      "helper": "check_outputs_equal",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "hf_runner, vllm_runner, example_prompts (from conftest.py), monkeypatch",
+      "c1_weak_oracle": "yes \u2014 exact string and token ID equality via check_outputs_equal",
+      "c2_realistic_breakage": "yes \u2014 tensor parallelism introduces all-reduce operations, different GEMM partitioning, and different attention kernel paths; numeric differences are expected",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #4: tensor parallel exact output equality is not a strong contract; also cross-runtime (HF vs vLLM) comparison has no listed Strong Contract",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "check_outputs_equal(\n    outputs_0_lst=hf_outputs,\n    outputs_1_lst=vllm_outputs,\n    name_0=\"hf\",\n    name_1=\"vllm\",\n)"
+    }
+  ]
+}</pre>
+<div class="file-badge">audit-not-cc.json/audit-not-cc.json</div>
+<pre class="output">{
+  "test_files_in_scope": 4,
+  "candidates_analyzed": 11,
+  "candidates": [
+    {
+      "candidate": "test_vllm_gc_ed",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 42,
+      "comparison": "none \u2014 checks GC behavior, not model output",
+      "oracle": "identity check (assert weak_llm() is None)",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "none relevant",
+      "c1_weak_oracle": "no \u2014 not a generated-output oracle; checks object lifecycle",
+      "c2_realistic_breakage": "no \u2014 FP drift cannot prevent garbage collection",
+      "c3_no_strong_contract": "n/a \u2014 criteria 1 and 2 not met",
+      "classification": "NOT_REALISTIC",
+      "coincidentally_correct": false,
+      "code_snippet": "weak_llm = weakref.ref(llm)\ndel llm\nassert weak_llm() is None"
+    },
+    {
+      "candidate": "test_failed_model_execution",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 235,
+      "comparison": "none \u2014 tests error propagation, not model output",
+      "oracle": "exception type and message check (pytest.raises + isinstance + 'in str')",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "vllm_runner, monkeypatch",
+      "c1_weak_oracle": "no \u2014 not a generated-output oracle; checks error handling",
+      "c2_realistic_breakage": "no \u2014 numeric drift cannot change error propagation behavior",
+      "c3_no_strong_contract": "n/a \u2014 criteria 1 and 2 not met",
+      "classification": "NOT_REALISTIC",
+      "coincidentally_correct": false,
+      "code_snippet": "with pytest.raises(RuntimeError) as exc_info:\n    vllm_model.generate_greedy(prompts, 200, use_tqdm=False)\nassert isinstance(exc_info.value, RuntimeError)\nassert \"Mocked Critical Error\" in str(exc_info.value)"
+    },
+    {
+      "candidate": "test_cpu_offload",
+      "file": "tests/basic_correctness/test_cpu_offload.py",
+      "line": 23,
+      "comparison": "baseline (no offload) vs CPU offload (--cpu-offload-gb 1)",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "none relevant",
+      "c1_weak_oracle": "yes \u2014 exact dict equality via compare_two_settings/compare_all_settings",
+      "c2_realistic_breakage": "no \u2014 CPU offload is data movement; same weights are loaded to GPU, same kernels execute",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: CPU offload should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "compare_two_settings(\n    model=\"hmellor/tiny-random-LlamaForCausalLM\",\n    arg1=[],\n    arg2=args,\n    env1=None,\n    env2=env_vars,\n)"
+    },
+    {
+      "candidate": "test_python_error",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 39,
+      "comparison": "none \u2014 tests error handling for memory allocation",
+      "oracle": "exception check (pytest.raises(RuntimeError))",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "no \u2014 not a generated-output oracle; checks error handling",
+      "c2_realistic_breakage": "no \u2014 numeric drift cannot change memory allocation error behavior",
+      "c3_no_strong_contract": "n/a \u2014 criteria 1 and 2 not met",
+      "classification": "NOT_REALISTIC",
+      "coincidentally_correct": false,
+      "code_snippet": "with pytest.raises(RuntimeError):\n    allocator.wake_up()"
+    },
+    {
+      "candidate": "test_basic_cumem",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 65,
+      "comparison": "computed sum vs expected constant (0+1+2=3), before and after sleep/wake",
+      "oracle": "tolerance-based (torch.allclose)",
+      "helper": "direct assertion (torch.allclose)",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "no \u2014 torch.allclose is a tolerance-based assertion on deterministic integer arithmetic, not generated model output",
+      "c2_realistic_breakage": "no \u2014 integer zero_() and += operations on tensors are exact; no FP accumulation drift",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #2: kernel tolerance tests where the tolerance IS the contract; also Strong Contract #5: sleep/wake restoration",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "output = x + y + z\nassert torch.allclose(output, torch.ones_like(output) * 3)"
+    },
+    {
+      "candidate": "test_cumem_with_cudagraph",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 118,
+      "comparison": "CUDA graph replay output vs expected (x @ I + 1 = x + 1), and cache content vs input",
+      "oracle": "tolerance-based (torch.allclose)",
+      "helper": "direct assertion (torch.allclose)",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "no \u2014 torch.allclose on deterministic identity matrix multiplication, not generated model output",
+      "c2_realistic_breakage": "no \u2014 identity matrix multiplication is exact; FP drift cannot change x @ I",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #2: kernel tolerance test; Strong Contract #4: eager vs cudagraph for same execution",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "x.random_()\nmodel_graph.replay()\nassert torch.allclose(x, cache[: x.size(0)])\nassert torch.allclose(y, x + 1)"
+    },
+    {
+      "candidate": "test_end_to_end",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 162,
+      "comparison": "output before sleep vs output after wake_up (full and partial wake_up)",
+      "oracle": "exact text equality (assert .text ==)",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "yes \u2014 exact string == on generated text",
+      "c2_realistic_breakage": "no \u2014 sleep/wake restores the same weights to GPU; same request, same engine state, same kernels",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: sleep/wake restoration should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "output = llm.generate(prompt, sampling_params)\nllm.sleep(level=1)\nllm.wake_up()\noutput2 = llm.generate(prompt, sampling_params)\nassert output[0].outputs[0].text == output2[0].outputs[0].text"
+    },
+    {
+      "candidate": "test_deep_sleep",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 209,
+      "comparison": "output before deep sleep vs output after wake_up + reload_weights",
+      "oracle": "exact text equality (assert .text ==)",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "yes \u2014 exact string == on generated text",
+      "c2_realistic_breakage": "no \u2014 deep sleep + reload restores same weights from checkpoint; same request, same engine state",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: sleep/wake restoration and reload should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "output = llm.generate(prompt, sampling_params)\nllm.sleep(level=2)\nllm.wake_up(tags=['weights'])\nllm.collective_rpc('reload_weights')\nllm.wake_up(tags=['kv_cache'])\noutput2 = llm.generate(prompt, sampling_params)\nassert output[0].outputs[0].text == output2[0].outputs[0].text"
+    },
+    {
+      "candidate": "test_deep_sleep_async",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 246,
+      "comparison": "output before deep sleep vs output after wake_up + reload_weights (async engine)",
+      "oracle": "exact text equality (assert .text ==)",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test",
+      "c1_weak_oracle": "yes \u2014 exact string == on generated text",
+      "c2_realistic_breakage": "no \u2014 deep sleep + reload restores same weights; async vs sync engine path does not change the math",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: sleep/wake restoration and reload should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "outputs = llm.generate(prompt, sampling_params, request_id='test_request_id1')\nasync for output in outputs: pass\nawait llm.sleep(level=2)\nawait llm.wake_up(tags=['weights'])\nawait llm.collective_rpc('reload_weights')\nawait llm.wake_up(tags=['kv_cache'])\noutputs2 = llm.generate(prompt, sampling_params, request_id='test_request_id2')\nasync for output2 in outputs2: pass\nassert output.outputs[0].text == output2.outputs[0].text"
+    },
+    {
+      "candidate": "test_deep_sleep_fp8_kvcache",
+      "file": "tests/basic_correctness/test_mem.py",
+      "line": 283,
+      "comparison": "output before deep sleep vs output after wake_up + reload_weights (fp8 kv-cache)",
+      "oracle": "exact text equality (assert .text ==)",
+      "helper": "direct assertion",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@requires_fp8",
+      "c1_weak_oracle": "yes \u2014 exact string == on generated text",
+      "c2_realistic_breakage": "no \u2014 deep sleep + reload restores same weights and fp8 kv-cache scales; same request, same engine",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: sleep/wake restoration and reload should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "output = llm.generate(prompt, sampling_params)\nllm.sleep(level=2)\nllm.wake_up(tags=['weights'])\nllm.collective_rpc('reload_weights')\nllm.wake_up(tags=['kv_cache'])\noutput2 = llm.generate(prompt, sampling_params)\nassert output[0].outputs[0].text == output2[0].outputs[0].text"
+    },
+    {
+      "candidate": "test_prefetch_offload_llama",
+      "file": "tests/basic_correctness/test_prefetch_offload.py",
+      "line": 17,
+      "comparison": "baseline (no offload) vs prefetch offload (group_size=8, num_in_group=2, prefetch_step=1)",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "none relevant",
+      "c1_weak_oracle": "yes \u2014 exact dict equality via compare_two_settings/compare_all_settings",
+      "c2_realistic_breakage": "no \u2014 prefetch offload is a data movement optimization; same weights, same kernels execute",
+      "c3_no_strong_contract": "no \u2014 Strong Contract #5: prefetch offload should not change model math",
+      "classification": "STRONG_CONTRACT",
+      "coincidentally_correct": false,
+      "code_snippet": "compare_two_settings(\n    \"meta-llama/Llama-3.2-1B-Instruct\",\n    [\"--offload-group-size\", \"8\", \"--offload-num-in-group\", \"2\",\n     \"--offload-prefetch-step\", \"1\", \"--offload-params\",\n     \"gate_up_proj\", \"down_proj\"],\n    [],\n)"
+    }
+  ]
+}</pre>
+<div class="file-badge">events.json</div>
+<pre class="output">[
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-07-08T18:26:05.279Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-07-08T18:26:05.279Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-07-08T18:26:05.279Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-07-08T18:26:05.299Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_progress",
+    "timestamp": "2026-07-08T18:26:06.287Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-07-08T18:26:07.129Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-07-08T18:26:07.197Z"
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "timestamp": "2026-07-08T18:26:07.219Z",
+    "model": "claude-opus-4-6"
+  },
+  {
+    "type": "assistant",
+    "text": "I'll run the audit agent to analyze the basic_correctness test directory in the vLLM repo.",
+    "tools": [],
+    "timestamp": "2026-07-08T18:26:10.112Z",
+    "_msg_id": "msg_vrtx_01CRkVHrjM2RZ4SjU8fGVNJW"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Agent",
+        "id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd",
+        "input": {
+          "description": "Audit vLLM basic_correctness tests",
+          "subagent_type": "vllm-test-audit:audit-agent",
+          "prompt": "Analyze the test files in the directory tests/basic_correctness/ of the vLLM repository located at /home/devuser/projects/vllm.\n\nYour task is to audit these tests for numeric stability issues, fragile assertions, and brittle numeric assumptions. Follow the audit contract to classify each test.\n\nIMPORTANT: You must write two output files to /tmp/agent-eval/2026-07-08-claude-opus-4-6/cases/basic_correctness/:\n1. audit-cc.json \u2014 findings classified as \"strong contract\" (clearly correct tests)\n2. audit-not-cc.json \u2014 findings classified as \"not strong contract\" (tests with potential issues)\n\nMake sure both files are valid JSON and non-empty. Even if one category has no findings, write an empty array [].\n\nStart by listing the test files in /home/devuser/projects/vllm/tests/basic_correctness/ to understand what needs to be audited.",
+          "run_in_background": false
+        }
+      }
+    ],
+    "timestamp": "2026-07-08T18:26:15.439Z",
+    "_msg_id": "msg_vrtx_01CRkVHrjM2RZ4SjU8fGVNJW"
+  },
+  {
+    "type": "system",
+    "subtype": "task_started",
+    "timestamp": "2026-07-08T18:26:15.445Z"
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "timestamp": "2026-07-08T18:26:19.134Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Read",
+        "id": "toolu_vrtx_01Fi26XVVnvZfKBPrNyh1ZMz",
+        "input": {
+          "file_path": "/home/devuser/.claude/plugins/cache/ai-marketplace/vllm-test-audit/2.13.0/skills/audit-contract/example.md"
+        }
+      }
+    ],
+    "timestamp": "2026-07-08T18:26:19.140Z",
+    "_msg_id": "msg_vrtx_01LhUJXckSsfbbm71R3E3zuU",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01Fi26XVVnvZfKBPrNyh1ZMz",
+    "tool_name": "Read",
+    "content": "1\t# Worked Examples\n2\t\n3\tTwo examples showing the full Phase 1 \u2192 Phase 2 pipeline: one COINCIDENTALLY_CORRECT, one STRONG_CONTRACT.\n4\t\n5\t## Example 1: test_cascade_attention (COINCIDENTALLY_CORRECT)\n6\t\n7\tFrom `tests/v1/e2e/general/test_cascade_attention.py`:\n8\t\n9\t```python\n10\tsingle_prompt = [example_system_message + prompt]\n11\tresponses = llm.generate(single_prompt, sampling_params)  # temp=0.0\n12\tref_output = responses[0].outputs[0].text\n13\t\n14\t# (Probably) Use cascade attention.\n15\tprompts = [example_system_message + prompt] * 64\n16\tresponses = llm.generate(prompts, sampling_params)\n17\tfor response in responses:\n18\t    assert response.outputs[0].text == ref_output  # EXACT string match\n19\t```\n20\t\n21\t**Why it's coincidentally correct:** Compares batch=1 vs batch=64 via exact string equality without `VLLM_BATCH_INVARIANT`. No strong contract (Not Strong #6). PyTorch issue 182700 showed this breaks.\n22\t\n23\t### Phase 1 output\n24\t\n25\t```python\n26\timport sys\n27\tsys.path.insert(0, \"${CLAUDE_PLUGIN_ROOT}/scripts\")\n28\tfrom output_object import AuditCandidate, AuditReport\n29\t\n30\treport = AuditReport(\n31\t    test_files_in_scope=1,\n32\t    candidates_analyzed=1,\n33\t    candidates=[\n34\t        AuditCandidate(\n35\t            candidate=\"test_cascade_attention\",\n36\t            file=\"tests/v1/e2e/general/test_cascade_attention.py\",\n37\t            line=43,\n38\t            comparison=\"batch=1 vs batch=64\",\n39\t            oracle=\"exact text equality (assert .text ==)\",\n40\t            helper=\"direct assertion\",\n41\t            batch_invariant_enabled=False,\n42\t            code_path_verified=False,\n43\t            fixtures=\"@create_new_process_for_each_test()\",\n44\t            c1_weak_oracle=\"yes \u2014 exact string == on generated text\",\n45\t            c2_realistic_breakage=\"yes \u2014 PyTorch #182700, cuBLAS kernel selection changes with batch size\",\n46\t            c3_no_strong_contract=\"yes \u2014 Not Strong #6: batch size invariance without BI mode\",\n47\t            classification=\"COINCIDENTALLY_CORRECT\",\n48\t            coincidentally_correct=True,\n49\t            code_snippet=\"prompts = [example_system_message + prompt] * 64\\nresponses = llm.generate(prompts, sampling_params)\\nfor response in responses:\\n    assert response.outputs[0].text == ref_output\",\n50\t        ),\n51\t    ],\n52\t)\n53\t\n54\texpected_tests = open(\"../test_list.csv\").read().strip().splitlines()\n55\treport.verify_coverage(expected_tests)\n56\treport.write_split(\"../audit-cc.json\", \"../audit-not-cc.json\")\n57\t```\n58\t\n59\t### Phase 2 output (AGREE)\n60\t\n61\t```python\n62\timport sys\n63\tsys.path.insert(0, \"${CLAUDE_PLUGIN_ROOT}/scripts\")\n64\tfrom output_object import ReviewCandidate, ReviewReport\n65\t\n66\treport = ReviewReport(\n67\t    test_files_in_scope=1,\n68\t    candidates_analyzed=1,\n69\t    phase_1_agreed=1,\n70\t    phase_1_reclassified=0,\n71\t    candidates=[\n72\t        ReviewCandidate(\n73\t            candidate=\"test_cascade_attention\",\n74\t            phase_1_classification=\"COINCIDENTALLY_CORRECT\",\n75\t            phase_1_coincidentally_correct=True,\n76\t            review=\"AGREE\",\n77\t            file=\"tests/v1/e2e/general/test_cascade_attention.py\",\n78\t            line=43,\n79\t            comparison=\"batch=1 vs batch=64\",\n80\t            oracle=\"exact text equality (assert .text ==)\",\n81\t            helper=\"direct assertion\",\n82\t            batch_invariant_enabled=False,\n83\t            code_path_verified=False,\n84\t            fixtures=\"@create_new_process_for_each_test()\",\n85\t            c1_weak_oracle=\"agree \u2014 exact string == on generated text\",\n86\t            c2_realistic_breakage=\"agree \u2014 cuBLAS kernel selection changes with batch size\",\n87\t            c3_no_strong_contract=\"agree \u2014 Not Strong #6: batch size invariance without BI mode\",\n88\t            classification=\"COINCIDENTALLY_CORRECT\",\n89\t            coincidentally_correct=True,\n90\t            code_snippet=\"prompts = [example_system_message + prompt] * 64\\nfor response in responses:\\n    assert response.outputs[0].text == ref_output\",\n91\t        ),\n92\t    ],\n93\t)\n94\t\n95\treport.write_to_file(\"../review-cc.json\")\n96\t```\n97\t\n98\t## Example 2: test_cpu_offload (Phase 2 reclassifies)\n99\t\n100\tShows Phase 2 catching a Phase 1 error. Phase 1 classified as COINCIDENTALLY_CORRECT, Phase 2 identifies Strong Contract #5.\n101\t\n102\t### Phase 1 output (incorrect)\n103\t\n104\t```python\n105\tAuditCandidate(\n106\t    candidate=\"test_cpu_offload\",\n107\t    file=\"tests/basic_correctness/test_cpu_offload.py\",\n108\t    line=42,\n109\t    comparison=\"normal loading vs CPU offload loading\",\n110\t    oracle=\"exact dict equality (compare_two_settings)\",\n111\t    helper=\"compare_two_settings\",\n112\t    batch_invariant_enabled=False,\n113\t    code_path_verified=False,\n114\t    fixtures=\"none relevant\",\n115\t    c1_weak_oracle=\"yes \u2014 exact dict equality via compare_two_settings\",\n116\t    c2_realistic_breakage=\"yes \u2014 different loading paths may use different kernels\",\n117\t    c3_no_strong_contract=\"yes \u2014 no contract found\",\n118\t    classification=\"COINCIDENTALLY_CORRECT\",\n119\t    coincidentally_correct=True,\n120\t    code_snippet=\"compare_two_settings(model, base_args, offload_args)\",\n121\t)\n122\t```\n123\t\n124\t### Phase 2 output (RECLASSIFY)\n125\t\n126\t```python\n127\tReviewCandidate(\n128\t    candidate=\"test_cpu_offload\",\n129\t    phase_1_classification=\"COINCIDENTALLY_CORRECT\",\n130\t    phase_1_coincidentally_correct=True,\n131\t    review=\"RECLASSIFY \u2014 Phase 1 missed Strong Contract #5\",\n132\t    file=\"tests/basic_correctness/test_cpu_offload.py\",\n133\t    line=42,\n134\t    comparison=\"normal loading vs CPU offload loading\",\n135\t    oracle=\"exact dict equality (compare_two_settings)\",\n136\t    helper=\"compare_two_settings\",\n137\t    batch_invariant_enabled=False,\n138\t    code_path_verified=False,\n139\t    fixtures=\"none relevant\",\n140\t    c1_weak_oracle=\"agree \u2014 exact dict equality\",\n141\t    c2_realistic_breakage=\"disagree \u2014 data movement uses identical kernels, no numeric divergence\",\n142\t    c3_no_strong_contract=\"disagree \u2014 Strong Contract #5: CPU offload must not change math\",\n143\t    classification=\"STRONG_CONTRACT\",\n144\t    coincidentally_correct=False,\n145\t    code_snippet=\"compare_two_settings(model, base_args, offload_args)\",\n146\t)\n147\t```\n148\t\n149\tC2 is \"disagree\" and C3 cites Strong Contract #5, so Phase 2 reclassifies. `coincidentally_correct` flips from `True` to `False`.\n150\t",
+    "is_error": false,
+    "timestamp": "2026-07-08T18:26:19.142Z",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "timestamp": "2026-07-08T18:26:19.639Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Read",
+        "id": "toolu_vrtx_01XUuxtRb28eUn84Jo4TMJJc",
+        "input": {
+          "file_path": "/home/devuser/.claude/plugins/cache/ai-marketplace/vllm-test-audit/2.13.0/scripts/output_object.py"
+        }
+      }
+    ],
+    "timestamp": "2026-07-08T18:26:19.643Z",
+    "_msg_id": "msg_vrtx_01LhUJXckSsfbbm71R3E3zuU",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01XUuxtRb28eUn84Jo4TMJJc",
+    "tool_name": "Read",
+    "content": "1\t\"\"\"Structured output objects for the vLLM test oracle auditor.\"\"\"\n2\t\n3\timport json\n4\tfrom dataclasses import asdict, dataclass, field\n5\tfrom pathlib import Path\n6\t\n7\t\n8\t@dataclass\n9\tclass AuditCandidate:\n10\t    \"\"\"Phase 1 evidence for a single test candidate.\"\"\"\n11\t\n12\t    candidate: str\n13\t    file: str\n14\t    line: int\n15\t    comparison: str\n16\t    oracle: str\n17\t    helper: str\n18\t    batch_invariant_enabled: bool\n19\t    code_path_verified: bool\n20\t    fixtures: str\n21\t    c1_weak_oracle: str\n22\t    c2_realistic_breakage: str\n23\t    c3_no_strong_contract: str\n24\t    classification: str\n25\t    coincidentally_correct: bool\n26\t    code_snippet: str = \"\"\n27\t\n28\t\n29\t@dataclass\n30\tclass ReviewCandidate:\n31\t    \"\"\"Phase 2 review verdict for a single test candidate.\"\"\"\n32\t\n33\t    candidate: str\n34\t    phase_1_classification: str\n35\t    phase_1_coincidentally_correct: bool\n36\t    review: str\n37\t    file: str\n38\t    line: int\n39\t    comparison: str\n40\t    oracle: str\n41\t    helper: str\n42\t    batch_invariant_enabled: bool\n43\t    code_path_verified: bool\n44\t    fixtures: str\n45\t    c1_weak_oracle: str\n46\t    c2_realistic_breakage: str\n47\t    c3_no_strong_contract: str\n48\t    classification: str\n49\t    coincidentally_correct: bool\n50\t    code_snippet: str = \"\"\n51\t\n52\t\n53\t@dataclass\n54\tclass AuditReport:\n55\t    \"\"\"Full Phase 1 audit report.\"\"\"\n56\t\n57\t    test_files_in_scope: int\n58\t    candidates_analyzed: int\n59\t    candidates: list[AuditCandidate] = field(default_factory=list)\n60\t\n61\t    def verify_coverage(self, expected_tests: list[str]) -&gt; None:\n62\t        \"\"\"Assert every test from list_tests.py output has a candidate entry.\n63\t\n64\t        Args:\n65\t            expected_tests: CSV lines from list_tests.py in DIR,FILE,FUNCTION format.\n66\t\n67\t        Raises:\n68\t            AssertionError: If any expected test is missing from the report.\n69\t        \"\"\"\n70\t        expected = set()\n71\t        for line in expected_tests:\n72\t            line = line.strip()\n73\t            if not line:\n74\t                continue\n75\t            parts = line.split(\",\")\n76\t            if len(parts) == 3:\n77\t                expected.add(parts[2])\n78\t        analyzed = {c.candidate for c in self.candidates}\n79\t        missing = expected - analyzed\n80\t        if missing:\n81\t            raise AssertionError(\n82\t                f\"Missing {len(missing)} test(s) from report:\\n\" + \"\\n\".join(sorted(missing))\n83\t            )\n84\t\n85\t    def write_split(self, cc_path: str, not_cc_path: str) -&gt; None:\n86\t        \"\"\"Write CC and not-CC candidates to separate JSON files.\n87\t\n88\t        Verifies that cc + not_cc == total candidates before writing.\n89\t\n90\t        Args:\n91\t            cc_path: Output path for coincidentally correct candidates.\n92\t            not_cc_path: Output path for not coincidentally correct candidates.\n93\t\n94\t        Raises:\n95\t            AssertionError: If the split counts don't add up.\n96\t        \"\"\"\n97\t        cc = [c for c in self.candidates if c.coincidentally_correct]\n98\t        not_cc = [c for c in self.candidates if not c.coincidentally_correct]\n99\t\n100\t        if len(cc) + len(not_cc) != len(self.candidates):\n101\t            raise AssertionError(\n102\t                f\"Split mismatch: {len(cc)} CC + {len(not_cc)} not-CC \"\n103\t                f\"!= {len(self.candidates)} total\"\n104\t            )\n105\t\n106\t        cc_report = {\n107\t            \"test_files_in_scope\": self.test_files_in_scope,\n108\t            \"candidates_analyzed\": len(cc),\n109\t            \"candidates\": [asdict(c) for c in cc],\n110\t        }\n111\t        not_cc_report = {\n112\t            \"test_files_in_scope\": self.test_files_in_scope,\n113\t            \"candidates_analyzed\": len(not_cc),\n114\t            \"candidates\": [asdict(c) for c in not_cc],\n115\t        }\n116\t\n117\t        Path(cc_path).write_text(json.dumps(cc_report, indent=2) + \"\\n\")\n118\t        Path(not_cc_path).write_text(json.dumps(not_cc_report, indent=2) + \"\\n\")\n119\t\n120\t        print(\n121\t            f\"Total: {len(self.candidates)}, \"\n122\t            f\"CC: {len(cc)} -&gt; {cc_path}, \"\n123\t            f\"Not CC: {len(not_cc)} -&gt; {not_cc_path}\"\n124\t        )\n125\t\n126\t\n127\t@dataclass\n128\tclass ReviewReport:\n129\t    \"\"\"Full Phase 2 review report.\"\"\"\n130\t\n131\t    test_files_in_scope: int\n132\t    candidates_analyzed: int\n133\t    phase_1_agreed: int\n134\t    phase_1_reclassified: int\n135\t    candidates: list[ReviewCandidate] = field(default_factory=list)\n136\t\n137\t    def verify_coverage(self, cc_input_path: str) -&gt; None:\n138\t        \"\"\"Assert every CC candidate from Phase 1 has a review entry.\n139\t\n140\t        Args:\n141\t            cc_input_path: Path to the Phase 1 CC JSON file.\n142\t\n143\t        Raises:\n144\t            AssertionError: If any CC candidate is missing a review.\n145\t        \"\"\"\n146\t        cc_data = json.loads(Path(cc_input_path).read_text())\n147\t        expected = {c[\"candidate\"] for c in cc_data[\"candidates\"]}\n148\t        reviewed = {c.candidate for c in self.candidates}\n149\t        missing = expected - reviewed\n150\t        if missing:\n151\t            raise AssertionError(\n152\t                f\"Missing {len(missing)} review(s):\\n\" + \"\\n\".join(sorted(missing))\n153\t            )\n154\t\n155\t    def write_to_file(self, file_name: str) -&gt; None:\n156\t        \"\"\"Write report as JSON to the given file path.\n157\t\n158\t        Args:\n159\t            file_name: Output file path.\n160\t        \"\"\"\n161\t        Path(file_name).write_text(json.dumps(asdict(self), indent=2) + \"\\n\")\n162\t",
+    "is_error": false,
+    "timestamp": "2026-07-08T18:26:19.645Z",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "timestamp": "2026-07-08T18:26:20.238Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Bash",
+        "id": "toolu_vrtx_01GyB34JidXZHsixkzJ3kZTL",
+        "input": {
+          "command": "ls /home/devuser/projects/vllm/tests/basic_correctness/",
+          "description": "List test files in basic_correctness directory"
+        }
+      }
+    ],
+    "timestamp": "2026-07-08T18:26:20.246Z",
+    "_msg_id": "msg_vrtx_01LhUJXckSsfbbm71R3E3zuU",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01GyB34JidXZHsixkzJ3kZTL",
+    "tool_name": "Bash",
+    "content": "Error while loading conda entry point: conda-libmamba-solver (libmamba.so.4: cannot open shared object file: No such file or directory)\nError while loading conda entry point: conda-libmamba-solver (libmamba.so.4: cannot open shared object file: No such file or directory)\n__init__.py\ntest_basic_correctness.py\ntest_cpu_offload.py\ntest_mem.py\ntest_prefetch_offload.py",
+    "is_error": false,
+    "timestamp": "2026-07-08T18:26:22.901Z",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "timestamp": "2026-07-08T18:26:30.726Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Bash",
+        "id": "toolu_vrtx_018kGqrCKrDGRo6Yn5VShuV7",
+        "input": {
+          "command": "python3 \"/home/devuser/.claude/plugins/cache/ai-marketplace/vllm-test-audit/2.13.0/scripts/list_tests.py\" /home/devuser/projects/vllm/tests/basic_correctness/ 2&gt;&amp;1 | tee /tmp/agent-eval/2026-07-08-claude-opus-4-6/cases/basic_correctness/test_list.csv",
+          "description": "List all test functions in basic_correctness directory"
+        }
+      }
+    ],
+    "timestamp": "2026-07-08T18:26:30.771Z",
+    "_msg_id": "msg_vrtx_01NmvGFQpP1U6UYLNHEFnvSr",
+    "parent_tool_use_id": "toolu_vrtx_01JVLZeSgRLA7Js8E4G1ZQCd"
+  },
+  {
+    "type": "system",
+    "subtype": "task_progress",
+    "timestamp": "2026-07-08T18:26:31.172Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Read",
+        "id": "toolu_vrtx_01QbksFXdj4DxpXtn8YWu7Be",
+        "input": {
+          "file_path": "/home/devuser/projects/vllm/tests/basic_correctness/test_basic_correctness.py"
+        }
+
+... truncated (838 lines total)</pre>
+<div class="file-badge">_modified/test_list.csv</div>
+<pre class="output">/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_vllm_gc_ed
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_models
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_models_distributed
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_failed_model_execution
+/home/devuser/projects/vllm/tests/basic_correctness,test_cpu_offload.py,test_cpu_offload
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_python_error
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_basic_cumem
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_cumem_with_cudagraph
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_end_to_end
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep_async
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep_fp8_kvcache
+/home/devuser/projects/vllm/tests/basic_correctness,test_prefetch_offload.py,test_prefetch_offload_llama</pre>
+</details>
+</details>
+
+<script>
+(function () {
+  var btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  function paint() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    btn.textContent = t === 'dark' ? '\u2600' : '\u263E';
+    btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    btn.title = btn.getAttribute('aria-label');
+  }
+  btn.addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('eval-report-theme', next); } catch (e) {}
+    paint();
+  });
+  paint();
+})();
+</script>
+<script>
+(function () {
+  document.querySelectorAll('.img-compare').forEach(function (widget) {
+    var tabs = widget.querySelectorAll('.img-compare-tab');
+    var panels = widget.querySelectorAll('.img-compare-panel');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        var target = widget.querySelector('#' + tab.dataset.panel);
+        if (target) target.classList.add('active');
+      });
+    });
+    var swipe = widget.querySelector('.img-compare-swipe');
+    if (swipe) {
+      (function (sw) {
+        var sl = sw.querySelector('input[type="range"]');
+        var ref = sw.querySelector('.swipe-ref');
+        var ln = sw.querySelector('.swipe-line');
+        if (sl && ref) {
+          function update() {
+            var p = sl.value;
+            ref.style.clipPath = 'inset(0 ' + (100 - p) + '% 0 0)';
+            if (ln) ln.style.marginLeft = p + '%';
+          }
+          sl.addEventListener('input', update);
+          update();
+        }
+      })(swipe);
+    }
+    var onion = widget.querySelector('.img-compare-onion');
+    if (onion) {
+      (function (on) {
+        var sl = on.querySelector('input[type="range"]');
+        var top = on.querySelector('.onion-top');
+        var lbl = on.querySelector('.onion-label');
+        if (sl && top) {
+          function update() {
+            top.style.opacity = sl.value / 100;
+            if (lbl) lbl.textContent = 'Generated opacity: ' + sl.value + '%';
+          }
+          sl.addEventListener('input', update);
+          update();
+        }
+      })(onion);
+    }
+  });
+})();
+</script>
+<script>
+(function () {
+  document.querySelectorAll('.sample-tabs').forEach(function (bar) {
+    bar.querySelectorAll('.sample-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var group = tab.closest('td');
+        group.querySelectorAll('.sample-tab').forEach(function (t) {
+          t.setAttribute('aria-selected', 'false');
+        });
+        group.querySelectorAll('.sample-panel').forEach(function (p) {
+          p.classList.remove('active');
+        });
+        tab.setAttribute('aria-selected', 'true');
+        var target = group.querySelector('#' + tab.dataset.panel);
+        if (target) target.classList.add('active');
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

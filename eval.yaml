@@ -1,11 +1,20 @@
 name: vllm-test-audit-eval
 description: Precision/recall and token efficiency evaluation of vllm-test-audit
 
-skill: vllm-test-audit
+# Empty because the audit is invoked via Agent tool (agent type
+# vllm-test-audit:audit-agent), not a slash command. When empty,
+# execute.py sends the arguments as a plain prompt.
+skill: ""
 
 execution:
   mode: case
-  arguments: "/vllm-test-audit:audit-agent {directory}"
+  arguments: >-
+    Use the audit-agent (subagent_type: vllm-test-audit:audit-agent) to
+    analyze {directory}. The vLLM test files are symlinked into the current
+    working directory under tests/. IMPORTANT: run the agent in the FOREGROUND
+    (run_in_background: false) and wait for it to complete. The agent must
+    write audit-cc.json and audit-not-cc.json to the current working directory.
+    After the agent finishes, verify those files exist and are non-empty.
   timeout: 3600
   max_budget_usd: 5.00
 
@@ -14,6 +23,29 @@ runner:
   effort: high
   plugin_dirs:
     - /home/devuser/projects/ai-marketplace
+
+permissions:
+  allow:
+    - "Read"
+    - "Edit"
+    - "Write"
+    - "Bash(*)"
+    - "Agent(*)"
+    - "Skill(*)"
+    - "WebFetch(*)"
+    - "WebSearch(*)"
+    - "SendMessage(*)"
+    - "TaskCreate"
+    - "TaskUpdate"
+    - "TaskList"
+    - "TaskGet"
+    - "mcp__*"
+
+hooks:
+  before_each:
+    - command: >-
+        python3 "$(dirname "$AGENT_EVAL_CONFIG")/scripts/setup_workspace.py"
+      description: "Symlink vLLM tests, add additionalDirectories, trust workspace"
 
 models:
   skill: opus

@@ -1,0 +1,40 @@
+{
+  "test_files_in_scope": 4,
+  "candidates_analyzed": 2,
+  "candidates": [
+    {
+      "candidate": "test_models",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 124,
+      "comparison": "HuggingFace greedy vs vLLM greedy (with variants: prompt_embeds, async_scheduling, model_executor)",
+      "oracle": "exact text + token ID equality (check_outputs_equal)",
+      "helper": "check_outputs_equal",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "hf_runner (from conftest.py)",
+      "c1_weak_oracle": "yes \u2014 exact string and token ID equality via check_outputs_equal",
+      "c2_realistic_breakage": "yes \u2014 HF and vLLM use different attention backends, memory layouts, and kernel implementations; FP differences can cause token divergence even with greedy decoding",
+      "c3_no_strong_contract": "yes \u2014 no Strong Contract covers cross-runtime (HF vs vLLM) comparison; enable_prompt_embeds=True variant also falls under Not Strong #9",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "check_outputs_equal(\n    outputs_0_lst=hf_outputs,\n    outputs_1_lst=vllm_outputs,\n    name_0=\"hf\",\n    name_1=\"vllm\",\n)"
+    },
+    {
+      "candidate": "test_models_distributed",
+      "file": "tests/basic_correctness/test_basic_correctness.py",
+      "line": 205,
+      "comparison": "HuggingFace single-GPU greedy vs vLLM TP=2 greedy",
+      "oracle": "exact text + token ID equality (check_outputs_equal)",
+      "helper": "check_outputs_equal",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "hf_runner, vllm_runner, example_prompts (from conftest.py), monkeypatch",
+      "c1_weak_oracle": "yes \u2014 exact string and token ID equality via check_outputs_equal",
+      "c2_realistic_breakage": "yes \u2014 tensor parallelism introduces all-reduce operations, different GEMM partitioning, and different attention kernel paths; numeric differences are expected",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #4: tensor parallel exact output equality is not a strong contract; also cross-runtime (HF vs vLLM) comparison has no listed Strong Contract",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "check_outputs_equal(\n    outputs_0_lst=hf_outputs,\n    outputs_1_lst=vllm_outputs,\n    name_0=\"hf\",\n    name_1=\"vllm\",\n)"
+    }
+  ]
+}

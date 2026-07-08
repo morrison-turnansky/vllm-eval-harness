@@ -1,0 +1,64 @@
+{
+  "exit_code": 0,
+  "duration_s": 193.8,
+  "wall_clock_s": 193.8,
+  "cost_usd": 0.99,
+  "token_usage": {
+    "input": 19,
+    "output": 10376,
+    "cache_read": 464760,
+    "cache_create": 80372
+  },
+  "num_turns": 13,
+  "per_model_usage": {
+    "claude-opus-4-6": {
+      "input": 19,
+      "output": 10376,
+      "cache_read": 464760,
+      "cache_create": 80372,
+      "cost_usd": 0.9942
+    }
+  },
+  "per_model_turns": {
+    "claude-opus-4-6": 13
+  },
+  "num_cases": 1,
+  "model": "claude-opus-4-6",
+  "agent": "claude-code",
+  "agent_version": "2.1.204 (Claude Code)",
+  "execution_mode": "case",
+  "eval_params": {
+    "skill": "",
+    "skill_args": "Use the audit-agent (subagent_type: vllm-test-audit:audit-agent) to analyze {directory}. The vLLM repo is at /home/devuser/projects/vllm. IMPORTANT: run the agent in the FOREGROUND (run_in_background: false) and wait for it to complete. The agent must write audit-cc.json and audit-not-cc.json to the current working directory. After the agent finishes, verify those files exist and are non-empty.",
+    "execution_mode": "case",
+    "max_budget_usd": 5.0,
+    "timeout_s": 3600,
+    "effort": "high"
+  },
+  "per_case": {
+    "basic_correctness": {
+      "exit_code": 0,
+      "duration_s": 193.8,
+      "token_usage": {
+        "input": 19,
+        "output": 10376,
+        "cache_read": 464760,
+        "cache_create": 80372
+      },
+      "cost_usd": 0.9942,
+      "num_turns": 13,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 19,
+          "output": 10376,
+          "cache_read": 464760,
+          "cache_create": 80372,
+          "cost_usd": 0.9942
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 13
+      }
+    }
+  }
+}

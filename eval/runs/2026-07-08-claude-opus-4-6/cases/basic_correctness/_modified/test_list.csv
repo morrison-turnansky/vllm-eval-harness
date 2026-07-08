@@ -1,0 +1,13 @@
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_vllm_gc_ed
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_models
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_models_distributed
+/home/devuser/projects/vllm/tests/basic_correctness,test_basic_correctness.py,test_failed_model_execution
+/home/devuser/projects/vllm/tests/basic_correctness,test_cpu_offload.py,test_cpu_offload
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_python_error
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_basic_cumem
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_cumem_with_cudagraph
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_end_to_end
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep_async
+/home/devuser/projects/vllm/tests/basic_correctness,test_mem.py,test_deep_sleep_fp8_kvcache
+/home/devuser/projects/vllm/tests/basic_correctness,test_prefetch_offload.py,test_prefetch_offload_llama
