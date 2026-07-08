@@ -30,11 +30,26 @@ python3 eval_metrics.py
 
 ### Online
 
-Run the plugin with token capture from a vLLM checkout directory:
+Run the plugin end-to-end with token capture and judge scoring. Requires:
+- The `agent-eval-harness` plugin installed (see above)
+- The `ai-marketplace` plugin directory at `/home/devuser/projects/ai-marketplace`
+- A local vLLM checkout at `/home/devuser/projects/vllm`
 
 ```bash
-/eval-run --config /path/to/vllm-eval-harness/eval.yaml --model <model>
+# Run a single case (fast iteration):
+/eval-run --config /home/devuser/projects/vllm-eval-harness/eval.yaml \
+  --model claude-opus-4-6 --cases basic_correctness
+
+# Run all cases:
+/eval-run --config /home/devuser/projects/vllm-eval-harness/eval.yaml \
+  --model claude-opus-4-6
 ```
+
+Available cases (by size): `compile` (5 tests), `basic_correctness` (13),
+`v1_e2e` (56), `lora` (142), `distributed` (261), `entrypoints` (1302).
+
+> **Note:** `claude-opus-4-6` works on the Vertex deployment.
+> The 1M-context variant (`claude-opus-4-6-1m`) is not available on Vertex.
 
 ## Example Output
 
