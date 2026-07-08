@@ -1,0 +1,59 @@
+name: vllm-test-audit-eval
+description: Precision/recall and token efficiency evaluation of vllm-test-audit
+
+skill: vllm-test-audit
+
+execution:
+  mode: case
+  arguments: "/vllm-test-audit:audit-agent {directory}"
+  timeout: 3600
+  max_budget_usd: 5.00
+
+runner:
+  type: claude-code
+  effort: high
+  plugin_dirs:
+    - /home/devuser/projects/ai-marketplace
+
+models:
+  skill: opus
+
+traces:
+  stdout: true
+  stderr: true
+  events: true
+  metrics: true
+
+dataset:
+  path: cases
+  schema: |
+    Each case has a 'directory' field pointing to a vLLM test directory to audit.
+
+outputs:
+  - path: audit-cc.json
+    schema: "Phase 1 CC candidates with classification and c1/c2/c3 criteria"
+  - path: audit-not-cc.json
+    schema: "Phase 1 non-CC candidates"
+  - path: review-cc.json
+    schema: "Phase 2 reviewed candidates with AGREE/RECLASSIFY verdicts"
+
+judges:
+  - name: classification_accuracy
+    type: module
+    module: judges.classification_judge
+    function: judge
+    description: "Per-test classification match rate against expert-verified golden.csv"
+    arguments:
+      golden_path: golden.csv
+
+  - name: token_efficiency
+    builtin: efficiency/cost_budget
+    description: "Per-invocation cost gate"
+    arguments:
+      max_cost_usd: 5.00
+
+thresholds:
+  classification_accuracy:
+    min_pass_rate: 0.90
+  token_efficiency:
+    min_pass_rate: 1.0
