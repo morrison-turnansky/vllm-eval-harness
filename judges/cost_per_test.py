@@ -1,0 +1,45 @@
+"""Token cost efficiency judge for vllm-test-audit."""
+
+import json
+
+
+def _count_candidates(files: dict[str, str]) -> int:
+    total = 0
+    for name, content in files.items():
+        if not name.endswith(".json"):
+            continue
+        if "review" in name:
+            continue
+        try:
+            data = json.loads(content)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        total += len(data.get("candidates", []))
+    return total
+
+
+def judge(
+    outputs: dict | None = None,
+    target_cost_per_test: float = 0.50,
+    **kwargs: object,
+) -> tuple[float, str]:
+    if outputs is None:
+        return 0.0, "No outputs provided"
+
+    cost = outputs.get("cost_usd")
+    if cost is None:
+        return 0.0, "No cost data available (traces.metrics not enabled?)"
+
+    num_tests = _count_candidates(outputs.get("files", {}))
+    if num_tests == 0:
+        return 0.0, f"No test candidates found in output. Cost=${cost:.2f}"
+
+    actual = cost / num_tests
+    score = min(1.0, target_cost_per_test / actual) if actual > 0 else 1.0
+
+    rationale = (
+        f"${cost:.2f} total, {num_tests} tests, "
+        f"${actual:.3f}/test (target ${target_cost_per_test:.2f}/test). "
+        f"Score={score:.3f}"
+    )
+    return score, rationale

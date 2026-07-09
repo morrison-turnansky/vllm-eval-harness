@@ -1,20 +1,21 @@
 name: vllm-test-audit-eval
-description: Precision/recall and token efficiency evaluation of vllm-test-audit
+description: F1 and token efficiency evaluation of vllm-test-audit
 
-# Empty because the audit is invoked via Agent tool (agent type
-# vllm-test-audit:audit-agent), not a slash command. When empty,
-# execute.py sends the arguments as a plain prompt.
+# Empty because the audit is invoked via Agent tool (coordinator-agent),
+# not a slash command. When empty, execute.py sends the arguments as a
+# plain natural-language prompt.
 skill: ""
+
+optimize:
+  target: audit-contract
 
 execution:
   mode: case
   arguments: >-
-    Use the audit-agent (subagent_type: vllm-test-audit:audit-agent) to
-    analyze {directory}. The vLLM test files are symlinked into the current
-    working directory under tests/. IMPORTANT: run the agent in the FOREGROUND
-    (run_in_background: false) and wait for it to complete. The agent must
-    write audit-cc.json and audit-not-cc.json to the current working directory.
-    After the agent finishes, verify those files exist and are non-empty.
+    Use the coordinator agent (subagent_type: vllm-test-audit:coordinator-agent)
+    to run the full audit pipeline on {directory}. Run in FOREGROUND
+    (run_in_background: false) and wait for completion. The agent writes
+    audit-cc.json, audit-not-cc.json, and review-cc.json to the cwd.
   timeout: 3600
   max_budget_usd: 5.00
 
@@ -70,22 +71,40 @@ outputs:
     schema: "Phase 2 reviewed candidates with AGREE/RECLASSIFY verdicts"
 
 judges:
-  - name: classification_accuracy
-    type: module
-    module: judges.classification_judge
+  - name: f1_score
+    module: judges.f1_score
     function: judge
-    description: "Per-test classification match rate against expert-verified golden.csv"
+    description: "F1 score against expert-verified golden.csv"
+    score_range: [0, 1]
     arguments:
       golden_path: golden.csv
 
-  - name: token_efficiency
-    builtin: efficiency/cost_budget
-    description: "Per-invocation cost gate"
+  - name: cost_per_test
+    module: judges.cost_per_test
+    function: judge
+    description: "Token cost efficiency normalized by tests analyzed"
+    score_range: [0, 1]
     arguments:
-      max_cost_usd: 5.00
+      target_cost_per_test: 0.50
+
+  - name: phase_delta
+    module: judges.phase_delta
+    function: judge
+    description: "Phase 2 marginal F1 contribution (positive = helpful)"
+    score_range: [-1, 1]
+    arguments:
+      golden_path: golden.csv
 
 thresholds:
-  classification_accuracy:
-    min_pass_rate: 0.90
-  token_efficiency:
-    min_pass_rate: 1.0
+  f1_score:
+    min_mean: 0.90
+  cost_per_test:
+    min_mean: 0.80
+
+reward:
+  formula: weighted
+  weights:
+    f1_score: 0.7
+    cost_per_test: 0.3
+  score_range: [0, 1]
+  gate: false
