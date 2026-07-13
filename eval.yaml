@@ -85,7 +85,7 @@ judges:
     description: "Token cost efficiency normalized by tests analyzed"
     score_range: [0, 1]
     arguments:
-      target_cost_per_test: 0.50
+      target_cost_per_test: 0.25
 
   - name: phase_delta
     module: judges.phase_delta
