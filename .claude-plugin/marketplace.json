@@ -1,0 +1,16 @@
+{
+  "name": "vllm-eval-harness",
+  "displayName": "vLLM Test Audit Eval Harness",
+  "description": "Evaluation harness and audit plugin for vLLM test oracle analysis",
+  "owner": {
+    "name": "TorchedHat"
+  },
+  "plugins": [
+    {
+      "name": "vllm-test-audit",
+      "description": "Two-phase test oracle auditor for vLLM. Phase 1 (audit-agent) classifies test assertions, Phase 2 (review-agent) adversarially verifies.",
+      "category": "testing",
+      "source": "./vllm-test-audit"
+    }
+  ]
+}

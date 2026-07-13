@@ -1,0 +1,30 @@
+judges:
+  cost_per_test:
+    mean: 1.0
+    pass_rate: null
+  f1_score:
+    mean: 1.0
+    pass_rate: null
+  phase_delta:
+    mean: 0.0
+    pass_rate: null
+per_case:
+  compile:
+    cost_per_test:
+      judge_type: code
+      rationale: $1.40 total, 5 tests, $0.280/test (target $0.50/test). Score=1.000
+      value: 1.0
+    f1_score:
+      judge_type: code
+      rationale: F1=1.000 P=1.000 R=1.000 (TP=5 FP=0 FN=0)
+      value: 1.0
+    phase_delta:
+      judge_type: code
+      rationale: Phase1 F1=1.000 Phase2 F1=1.000 delta=+0.000
+      value: 0.0
+run_id: 2026-07-13-opus
+run_metrics:
+  cache_hit_rate: 0.89319
+  cost_per_mtok_usd: 1.3704
+  cost_per_turn_usd: 0.073684
+  output_tokens_per_turn: 569.79

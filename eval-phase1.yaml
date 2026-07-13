@@ -1,9 +1,6 @@
-name: vllm-test-audit-eval
-description: F1 and token efficiency evaluation of vllm-test-audit
+name: vllm-test-audit-phase1
+description: Phase 1 only evaluation of vllm-test-audit audit-agent
 
-# Empty because the audit is invoked via Agent tool (coordinator-agent),
-# not a slash command. When empty, execute.py sends the arguments as a
-# plain natural-language prompt.
 skill: ""
 
 optimize:
@@ -12,10 +9,10 @@ optimize:
 execution:
   mode: case
   arguments: >-
-    Use the coordinator agent (subagent_type: vllm-test-audit:coordinator-agent)
-    to run the full audit pipeline on {directory}. Run in FOREGROUND
-    (run_in_background: false) and wait for completion. The agent writes
-    audit-cc.json, audit-not-cc.json, and review-cc.json to the cwd.
+    Use the audit agent (subagent_type: vllm-test-audit:audit-agent)
+    to audit {directory}. Run in FOREGROUND (run_in_background: false)
+    and wait for completion. The agent writes audit-cc.json and
+    audit-not-cc.json to the cwd.
   timeout: 3600
   max_budget_usd: 5.00
 
@@ -47,6 +44,10 @@ hooks:
     - command: >-
         python3 "$(dirname "$AGENT_EVAL_CONFIG")/scripts/setup_workspace.py"
       description: "Symlink vLLM tests, add additionalDirectories, trust workspace"
+  after_each:
+    - command: >-
+        python3 "$(dirname "$AGENT_EVAL_CONFIG")/scripts/fp_fn_report.py"
+      description: "Generate FP/FN classification report from audit output vs golden.csv"
 
 models:
   skill: opus
@@ -67,8 +68,8 @@ outputs:
     schema: "Phase 1 CC candidates with classification and c1/c2/c3 criteria"
   - path: audit-not-cc.json
     schema: "Phase 1 non-CC candidates"
-  - path: review-cc.json
-    schema: "Phase 2 reviewed candidates with AGREE/RECLASSIFY verdicts"
+  - path: fp_fn_report.md
+    schema: "Markdown report listing false positives and false negatives against golden.csv with per-test criteria details"
 
 judges:
   - name: f1_score
@@ -86,14 +87,6 @@ judges:
     score_range: [0, 1]
     arguments:
       target_cost_per_test: 0.50
-
-  - name: phase_delta
-    module: judges.phase_delta
-    function: judge
-    description: "Phase 2 marginal F1 contribution (positive = helpful)"
-    score_range: [-1, 1]
-    arguments:
-      golden_path: golden.csv
 
 thresholds:
   f1_score:

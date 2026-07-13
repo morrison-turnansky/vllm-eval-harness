@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vllm-test-audit-eval — 2026-07-13-opus</title>
+<script>
+(function () {
+  try {
+    var stored = localStorage.getItem('eval-report-theme');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
+<style>
+:root {
+  --bg: #cbd1da;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-soft: #475569;
+  --accent: #2563eb;
+  --accent-strong: #1e3a8a;
+  --accent-soft: #dbeafe;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --success-border: #86efac;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --danger-border: #fca5a5;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --warning-border: #fcd34d;
+  --neutral-soft: #f1f5f9;
+  --neutral-border: #cbd5e1;
+  --code-bg: #eef2f7;
+  --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-strong: 0 4px 12px rgba(15,23,42,.08), 0 1px 3px rgba(15,23,42,.05);
+  --diff-add-bg: #e6ffec;
+  --diff-add-strong: #acf2bd;
+  --diff-del-bg: #ffeef0;
+  --diff-del-strong: #fdb8c0;
+  --diff-hdr-bg: #f0f0f0;
+  --case-pass-accent: #16a34a;
+  --case-fail-accent: #dc2626;
+  --case-pw-a-accent: #16a34a;
+  --case-pw-b-accent: #dc2626;
+  --case-pw-tie-accent: #d97706;
+  --case-pw-error-accent: #94a3b8;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #0f1729;
+  --surface-2: #162033;
+  --surface-3: #1e293b;
+  --border: #1e2c44;
+  --border-strong: #334155;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-soft: #cbd5e1;
+  --accent: #60a5fa;
+  --accent-strong: #93c5fd;
+  --accent-soft: #1e3a8a;
+  --success: #4ade80;
+  --success-soft: #14532d;
+  --success-border: #166534;
+  --danger: #f87171;
+  --danger-soft: #7f1d1d;
+  --danger-border: #991b1b;
+  --warning: #fbbf24;
+  --warning-soft: #78350f;
+  --warning-border: #92400e;
+  --neutral-soft: #1e293b;
+  --neutral-border: #334155;
+  --code-bg: #1e293b;
+  --shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-strong: 0 4px 14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
+  --diff-add-bg: rgba(74,222,128,.08);
+  --diff-add-strong: rgba(74,222,128,.28);
+  --diff-del-bg: rgba(248,113,113,.08);
+  --diff-del-strong: rgba(248,113,113,.28);
+  --diff-hdr-bg: #1e293b;
+  --case-pass-accent: #4ade80;
+  --case-fail-accent: #f87171;
+  --case-pw-a-accent: #4ade80;
+  --case-pw-b-accent: #f87171;
+  --case-pw-tie-accent: #fbbf24;
+  --case-pw-error-accent: #64748b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.55; max-width: 1200px; margin: 0 auto; padding: 1.5em 1.5em 4em; color: var(--text); background: var(--bg); transition: background-color .15s ease, color .15s ease; }
+h1 { padding-bottom: 0; margin: 0 0 0.55em; font-size: 1.9em; letter-spacing: -0.015em; font-weight: 700; color: var(--accent-strong); }
+.report-header { margin: 0 0 1.6em; padding-bottom: 1.1em; border-bottom: 2px solid var(--border-strong); }
+.header-meta { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.meta-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 13px 5px 12px; font-size: 0.95em; color: var(--text); box-shadow: var(--shadow); line-height: 1.4; }
+.meta-chip .meta-label { font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 700; }
+.meta-chip code { background: var(--code-bg); padding: 1px 7px; border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.92em; color: var(--text); }
+h2 { margin-top: 1.5em; letter-spacing: -0.005em; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; margin: 1em 0; font-variant-numeric: tabular-nums; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+th, td { border-bottom: 1px solid var(--border); padding: 9px 12px; text-align: left; }
+tr:last-child td { border-bottom: none; }
+th { background: var(--surface-2); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; }
+tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 50%, transparent); }
+tbody tr:hover td { background: var(--accent-soft); }
+.pass, .fail, .warn, .skip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.85em; font-weight: 600; line-height: 1.4; border: 1px solid transparent; }
+.pass { color: var(--success); background: var(--success-soft); border-color: var(--success-border); }
+.fail { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-border); }
+.warn { color: var(--warning); background: var(--warning-soft); border-color: var(--warning-border); }
+.skip { color: var(--text-muted); background: var(--neutral-soft); border-color: var(--neutral-border); font-weight: 500; }
+.metric-row td:last-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.judge-type { font-size: 0.85em; color: var(--text-muted); }
+.subsection-heading { margin-top: 1.4em; font-size: 0.95em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.model-heading { margin: 1.2em 0 0.4em; font-size: 0.92em; font-weight: 600; color: var(--text-soft); }
+.model-heading code { background: var(--code-bg); padding: 2px 8px; border-radius: 4px; font-size: 0.95em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
+.config-table { table-layout: fixed; }
+.config-table th:first-child, .config-table td:first-child { width: 22%; }
+.config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.9em 1.6em; margin: 0.4em 0 0.8em; padding: 0; }
+.kv { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.kv dt { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin: 0; }
+.kv dd { margin: 0; font-weight: 500; font-variant-numeric: tabular-nums; word-break: break-word; line-height: 1.35; color: var(--text); }
+.kv dd.bl { color: var(--text-muted); font-size: 0.85em; font-weight: 400; }
+.kv dd.bl::before { content: "vs "; opacity: 0.7; }
+.kv dd.bl .delta { font-weight: 600; font-size: 0.95em; padding-left: 4px; }
+details.eval-params { margin: 1.2em 0 0; padding: 0; }
+details.eval-params > summary { cursor: pointer; padding: 6px 0; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; min-width: 0; }
+details.eval-params > summary::-webkit-details-marker { display: none; }
+details.eval-params > summary::before { content: "▸"; font-size: 0.9em; transition: transform .15s ease; display: inline-block; color: var(--text-muted); flex-shrink: 0; }
+details.eval-params[open] > summary::before { transform: rotate(90deg); }
+details.eval-params > summary:hover .eval-params-label { color: var(--accent); }
+.eval-params-label { font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; flex-shrink: 0; }
+.eval-params-preview { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85em; color: var(--text-soft); padding-left: 8px; border-left: 1px solid var(--border-strong); margin-left: 2px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.eval-params[open] .eval-params-preview { display: none; }
+details.eval-params > .config-grid { margin-top: 0.5em; }
+details.eval-params > .run-command { margin: 0.6em 0 0; }
+.run-command { margin: 0.4em 0 1em; }
+.run-command-label { display: block; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+.run-command pre { margin: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; overflow-x: auto; font-size: 0.85em; line-height: 1.4; }
+.run-command code { background: transparent; padding: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); white-space: pre; }
+.usage-table th code { background: var(--code-bg); padding: 2px 7px; border-radius: 4px; font-size: 0.95em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); text-transform: none; letter-spacing: 0; font-weight: 500; }
+.usage-table td { font-variant-numeric: tabular-nums; }
+.usage-table .cur-val { display: block; font-weight: 500; }
+.usage-table .bl-val { display: block; font-size: 0.82em; color: var(--text-muted); margin-top: 1px; }
+.usage-table .bl-val::before { content: "vs "; opacity: 0.7; }
+.usage-table .delta { font-weight: 600; font-size: 0.9em; padding-left: 4px; }
+.delta-good { color: var(--success); }
+.delta-bad { color: var(--danger); }
+.delta-flat { color: var(--text-muted); font-weight: 500; }
+.baseline-row td { background: var(--surface-2); font-style: italic; color: var(--text-muted); }
+.rationale { font-size: 0.88em; color: var(--text-soft); }
+.rationale p { margin: 0 0 0.5em; line-height: 1.5; }
+.rationale p:last-child { margin-bottom: 0; }
+.rationale ul, .rationale ol { margin: 0.3em 0 0.5em 1.2em; padding: 0; }
+.rationale li { margin: 0.2em 0; }
+.rationale code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 0.9em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.rationale strong { color: var(--text); }
+details.case { margin: 1em 0; border: 1px solid var(--border); border-left-width: 4px; border-radius: 8px; padding: 1em 1.2em; background: var(--surface); box-shadow: var(--shadow); }
+details.case.case-pass { border-left-color: var(--case-pass-accent); }
+details.case.case-fail { border-left-color: var(--case-fail-accent); }
+details.case.case-pw-a { border-left-color: var(--case-pw-a-accent); }
+details.case.case-pw-b { border-left-color: var(--case-pw-b-accent); }
+details.case.case-pw-tie { border-left-color: var(--case-pw-tie-accent); }
+details.case.case-pw-error { border-left-color: var(--case-pw-error-accent); }
+details.case > summary { cursor: pointer; font-weight: 600; padding: 0.2em 0; font-size: 1.02em; list-style: none; display: flex; align-items: center; gap: 0.6em; }
+details.case > summary::-webkit-details-marker { display: none; }
+details.case > summary::before { content: "▸"; color: var(--text-muted); transition: transform .15s ease; display: inline-block; }
+details.case[open] > summary::before { transform: rotate(90deg); }
+details.case > summary:hover { color: var(--accent); }
+.info-box { background: var(--accent-soft); border: 1px solid var(--border); border-radius: 6px; padding: 0.8em 1em; margin: 0.6em 0; font-size: 0.9em; }
+.feedback-box { background: var(--warning-soft); border: 1px solid var(--warning-border); border-radius: 6px; padding: 0.8em 1em; margin: 0.6em 0; font-size: 0.9em; color: var(--text); }
+.file-badge { display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.82em; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 5px; padding: 3px 10px; margin: 1em 0 0.5em 0; color: var(--text-soft); }
+.pw-badge { display: inline-block; font-size: 0.78em; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-left: 8px; border: 1px solid transparent; letter-spacing: 0.04em; }
+.pw-win { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
+.pw-loss { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+.pw-tie { background: var(--warning-soft); color: var(--warning); border-color: var(--warning-border); }
+.pw-error { background: var(--neutral-soft); color: var(--text-muted); border-color: var(--neutral-border); }
+.stab-wrap { display: inline-flex; align-items: center; gap: 5px; }
+.stab-bar { vertical-align: middle; }
+.stab-label { font-size: 0.8em; color: var(--text-muted); }
+.ascii-range { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.85em; letter-spacing: 1px; color: var(--text-muted); margin-left: 6px; white-space: pre; }
+.ascii-range .med { color: var(--accent); font-weight: 700; }
+.sample-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0.5em; }
+.sample-tab { padding: 3px 10px; font-size: 0.82em; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; color: var(--text-muted); background: none; }
+.sample-tab:hover { background: var(--surface-2); }
+.sample-tab[aria-selected="true"] { color: var(--text); background: var(--surface); border-color: var(--border); border-bottom: 2px solid var(--surface); margin-bottom: -2px; font-weight: 600; }
+.sample-tab .tab-score { font-weight: 700; margin-right: 4px; }
+.sample-panel { display: none; }
+.sample-panel.active { display: block; }
+.diff-table { width: 100%; border-collapse: collapse; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.82em; table-layout: fixed; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.diff-table td { padding: 1px 6px; vertical-align: top; white-space: pre-wrap; word-wrap: break-word; border: 1px solid var(--border); }
+.diff-table .ln { width: 35px; min-width: 35px; color: var(--text-muted); text-align: right; background: var(--surface-2); user-select: none; white-space: nowrap; }
+.diff-table .left, .diff-table .right { width: calc(50% - 35px); background: var(--surface); }
+.diff-table .sep { width: 1px; padding: 0; background: var(--border-strong); }
+.diff-table tr.mod .left { background: var(--diff-del-bg); }
+.diff-table tr.mod .right { background: var(--diff-add-bg); }
+.diff-table tr.add .right { background: var(--diff-add-bg); }
+.diff-table tr.add .left { background: var(--surface-2); }
+.diff-table tr.del .left { background: var(--diff-del-bg); }
+.diff-table tr.del .right { background: var(--surface-2); }
+.diff-table tr.hdr td { background: var(--diff-hdr-bg); color: var(--text-muted); font-weight: 600; }
+.diff-table .wdel { background: var(--diff-del-strong); border-radius: 2px; padding: 0 2px; }
+.diff-table .wadd { background: var(--diff-add-strong); border-radius: 2px; padding: 0 2px; }
+pre.output { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 0.9em 1em; font-size: 0.88em; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; color: var(--text); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.html-preview { width: 100%; height: 80vh; max-height: 2000px; border: 1px solid var(--border-strong); border-radius: 6px; margin: 0.5em 0; background: #fff; color-scheme: light; }
+.section, .analysis { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 1.3em 1.6em 1.4em; margin: 1.5em 0; box-shadow: var(--shadow); }
+.section > h2:first-child, h2.section-heading { margin: 0 0 0.7em; padding: 0; border: none; font-size: 1.3em; color: var(--accent-strong); letter-spacing: -0.005em; }
+h2.section-heading { margin: 1.8em 0 0.8em; }
+.section-intro { color: var(--text-muted); margin: 0 0 1em; font-size: 0.92em; }
+.section > table:last-child, .section > details:last-child { margin-bottom: 0; }
+.analysis { border-left-width: 5px; margin-bottom: 2em; box-shadow: var(--shadow-strong); }
+.analysis-banner { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.3em; }
+.analysis-banner h2 { margin: 0; padding: 0; border: none; font-size: 1.4em; color: var(--accent-strong); letter-spacing: -0.005em; }
+.analysis-body h2 { margin-top: 1.6em; padding-bottom: 0.35em; font-size: 1.1em; color: var(--accent-strong); border-bottom: 1px solid var(--border); }
+.analysis-body h2:first-of-type { margin-top: 0; font-size: 1.2em; border-bottom-width: 2px; padding-bottom: 0.4em; border-bottom-color: var(--accent); }
+.analysis-body h3 { margin-top: 1em; color: var(--text-soft); font-size: 1em; }
+.analysis-body li { margin: 0.3em 0; line-height: 1.55; }
+.analysis-body p { line-height: 1.6; }
+.analysis-body code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
+.analysis-body table { font-size: 0.92em; }
+.analysis-body hr { border: none; border-top: 1px dashed var(--border-strong); margin: 1.4em 0; }
+.section-intro code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+#theme-toggle { position: fixed; top: 16px; right: 16px; z-index: 1000; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 999px; width: 38px; height: 38px; padding: 0; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); transition: background-color .15s ease, transform .15s ease, border-color .15s ease; }
+#theme-toggle:hover { background: var(--surface-2); border-color: var(--accent); transform: scale(1.05); }
+#theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media print {
+  :root { color-scheme: light; --bg: #fff; --surface: #fff; --text: #000; --text-muted: #444; }
+  #theme-toggle { display: none; }
+  .section, .analysis, details.case { box-shadow: none; break-inside: avoid; }
+}
+
+/* Image artifacts */
+.img-artifact { margin: 0.5em 0; }
+.img-artifact img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.img-label { display: inline-block; font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 999px; margin-bottom: 6px; }
+.img-label-gen { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+.img-label-ref { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+.img-label-bl { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning-border); }
+
+/* Comparison widget */
+.img-compare { margin: 0.8em 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.img-compare-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.img-compare-tab { padding: 7px 16px; font-size: 0.85em; font-weight: 600; color: var(--text-muted); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+.img-compare-tab:hover { color: var(--text); }
+.img-compare-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.img-compare-panel { display: none; padding: 1em; }
+.img-compare-panel.active { display: block; }
+
+/* Side-by-side */
+.img-compare-sbs { display: flex; gap: 1em; }
+.img-compare-sbs > div { flex: 1; min-width: 0; }
+.img-compare-sbs img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+
+/* Swipe */
+.img-compare-swipe-imgs { display: grid; border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden; }
+.img-compare-swipe-imgs > img { grid-area: 1/1; display: block; width: 100%; height: auto; }
+.img-compare-swipe-imgs .swipe-ref { grid-area: 1/1; z-index: 1; background: #fff; clip-path: inset(0 50% 0 0); }
+.img-compare-swipe-imgs .swipe-ref img { display: block; width: 100%; height: auto; }
+.img-compare-swipe-imgs .swipe-line { grid-area: 1/1; z-index: 2; justify-self: start; width: 3px; background: var(--accent); pointer-events: none; margin-left: 50%; }
+.img-compare-swipe input[type="range"] { display: block; width: 100%; margin: 8px 0 0; accent-color: var(--accent); }
+.img-compare-swipe-labels { display: flex; justify-content: space-between; padding: 4px 1em; font-size: 0.82em; color: var(--text-muted); }
+
+/* Onion */
+.img-compare-onion-wrap { display: grid; border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden; }
+.img-compare-onion-wrap > img { grid-area: 1/1; display: block; width: 100%; height: auto; }
+.img-compare-onion-wrap .onion-top { grid-area: 1/1; background: #fff; }
+.img-compare-onion-wrap .onion-top img { display: block; width: 100%; height: auto; }
+.img-compare-onion input[type="range"] { display: block; width: 100%; margin: 8px 0 0; accent-color: var(--accent); }
+.img-compare-onion .onion-label { text-align: center; font-size: 0.82em; color: var(--text-muted); margin-top: 2px; }
+
+/* Diagram source collapsible */
+/* Metrics table */
+.metrics-table { font-size: 0.88em; margin: 0.5em 0; border-collapse: collapse; }
+.metrics-table th { text-align: left; padding: 4px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-weight: 600; color: var(--text-soft); }
+.metrics-table td { padding: 4px 12px; border-bottom: 1px solid var(--border); }
+.metrics-table td:last-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
+
+.diagram-source { margin-top: 0.4em; }
+.diagram-source summary { font-size: 0.85em; color: var(--text-muted); cursor: pointer; padding: 4px 0; }
+.diagram-source summary:hover { color: var(--text); }
+.diagram-source pre { max-height: 400px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<button id="theme-toggle" type="button" aria-label="Toggle theme">☾</button>
+<header class="report-header">
+  <h1>Skill Eval Report</h1>
+  <div class="header-meta"><span class="meta-chip"><span class="meta-label">Run</span><code>2026-07-13-opus</code></span><span class="meta-chip"><span class="meta-label">Date</span>2026-07-13 16:48</span></div>
+</header>
+<section class="section">
+<h2>Run Configuration</h2>
+<dl class="config-grid">
+<div class="kv"><dt>Model</dt><dd>claude-opus-4-6</dd></div>
+<div class="kv"><dt>Subagent Model</dt><dd>—</dd></div>
+<div class="kv"><dt>Effort</dt><dd>high</dd></div>
+<div class="kv"><dt>Agent</dt><dd>claude-code</dd></div>
+<div class="kv"><dt>Agent Version</dt><dd>2.1.207 (Claude Code)</dd></div>
+<div class="kv"><dt>Duration</dt><dd>3 min</dd></div>
+<div class="kv"><dt>Cost</dt><dd>$1.40</dd></div>
+<div class="kv"><dt>Turns</dt><dd>19</dd></div>
+<div class="kv"><dt>Exit Code</dt><dd>0</dd></div>
+</dl>
+<h3 class="subsection-heading">Model Usage</h3>
+<table class="usage-table">
+<tr><th></th><th><code>claude-opus-4-6</code></th></tr>
+<tr><th>Input tokens (total)</th><td><span class="cur-val">1,010,770</span></td></tr>
+<tr><th>Output tokens</th><td><span class="cur-val">10,826</span></td></tr>
+<tr><th>Cache read</th><td><span class="cur-val">902,810</span></td></tr>
+<tr><th>Cache write</th><td><span class="cur-val">107,939</span></td></tr>
+<tr><th>Cache hit</th><td><span class="cur-val">89.3%</span></td></tr>
+<tr><th>Cost</th><td><span class="cur-val">$1.40</span></td></tr>
+<tr><th>Cost / turn</th><td><span class="cur-val">$0.0735</span></td></tr>
+<tr><th>Output tokens / turn</th><td><span class="cur-val">570</span></td></tr>
+<tr><th>Cost / Mtok</th><td><span class="cur-val">$1.37</span></td></tr>
+</table>
+<details class="eval-params">
+<summary><span class="eval-params-label">Parameters</span><span class="eval-params-preview">/ Use the coordinator agent (subagent_type: vllm-test-audit:coordinator-agent) to run the full audit pipeline on {directory}. Run in FOREGROUND (run_in_background: false) and wait for completion. The agent writes audit-cc.json, audit-not-cc.json, and review-cc.json to the cwd.</span></summary>
+<dl class="config-grid">
+<div class="kv"><dt>Execution Mode</dt><dd>case</dd></div>
+<div class="kv"><dt>Max Budget</dt><dd>$5</dd></div>
+<div class="kv"><dt>Timeout</dt><dd>60 min</dd></div>
+<div class="kv"><dt>Effort</dt><dd>high</dd></div>
+</dl>
+<div class="run-command"><span class="run-command-label">Skill Args</span><pre><code>/ Use the coordinator agent (subagent_type: vllm-test-audit:coordinator-agent) to run the full audit pipeline on {directory}. Run in FOREGROUND (run_in_background: false) and wait for completion. The agent writes audit-cc.json, audit-not-cc.json, and review-cc.json to the cwd.</code></pre></div>
+</details>
+</section>
+<section class="analysis">
+<div class="analysis-banner"><h2>Analysis</h2></div>
+<p class="section-intro">Generated by <strong>Claude Code</strong> (<code>claude-opus-4-6</code>) on <code>2026-07-13 00:00:00+00:00</code> from 3 judge scores across 1 case, plus execution metadata (3 min, $1.40, 19 turns, exit 0). Recommendation leads; failure patterns, root causes, and regressions follow as supporting evidence.</p>
+<div class="analysis-body">
+<h2>Recommendation</h2>
+<p><strong>All judges pass at ceiling — the audit skill is production-ready on the <code>compile</code> case with <code>claude-opus-4-6</code>.</strong></p>
+<p>F1 = 1.000 (5/5 TP, 0 FP, 0 FN), cost $0.28/test against a $0.50 target (cost_per_test score = 1.0), and phase_delta = 0.0 (Phase 1 already perfect, Phase 2 confirms without drift). No action needed for this case — expand to larger cases (<code>lora</code>, <code>v1_e2e</code>, <code>distributed</code>) to stress-test recall and cost scaling.</p>
+<p><strong>Top actions:</strong></p>
+<ul>
+<li><strong>MEDIUM</strong> — Run <code>lora</code> (142 tests) and <code>v1_e2e</code> (56 tests) to validate F1 holds at scale</li>
+<li><strong>LOW</strong> — Run <code>distributed</code> (261 tests) to check cost_per_test stays under $0.50 on large directories</li>
+</ul>
+<h2>Summary</h2>
+<table>
+<tr><th>Judge</th><th>Mean</th><th>Threshold</th><th>Status</th></tr>
+<tr><td>f1_score</td><td>1.000</td><td>≥0.90</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>cost_per_test</td><td>1.000</td><td>≥0.80</td><td><span class="pass">PASS</span></td></tr>
+<tr><td>phase_delta</td><td>0.000</td><td>—</td><td>neutral</td></tr>
+</table>
+<table>
+<tr><th>Metric</th><th>Value</th></tr>
+<tr><td>Duration</td><td>199s</td></tr>
+<tr><td>Cost</td><td>$1.40</td></tr>
+<tr><td>Turns</td><td>19</td></tr>
+<tr><td>Cost/turn</td><td>$0.074</td></tr>
+<tr><td>Output tokens/turn</td><td>570</td></tr>
+<tr><td>Cache hit rate</td><td>89.3%</td></tr>
+</table>
+<h2>Failure Patterns</h2>
+<p>None. All judges pass on the single case.</p>
+<h2>Cost Attribution</h2>
+<p>With only 1 case and 5 tests, cost_per_test = $0.28 is well under the $0.50 target. The 89% cache hit rate shows efficient prompt reuse. Cost/turn ($0.074) and cost/Mtok ($1.37) are typical for opus-4-6 at high effort. Headline cost of $1.40 is entirely workload-driven (19 turns across 5 tests) — no model or runner anomalies.</p>
+</div>
+</section>
+<section class="section">
+<h2>Scoring Summary</h2>
+<table>
+<tr><th>Judge</th><th>Type</th><th>Metric</th><th>Value</th><th>Threshold</th><th>Status</th></tr>
+<tr class="metric-row"><td>cost_per_test</td><td class="judge-type">code</td><td>mean</td><td>1.00</td><td>&ge; 0.8</td><td><span class="pass">PASS</span></td></tr>
+<tr class="metric-row"><td>f1_score</td><td class="judge-type">code</td><td>mean</td><td>1.00</td><td>&ge; 0.9</td><td><span class="pass">PASS</span></td></tr>
+<tr class="metric-row"><td>phase_delta</td><td class="judge-type">code</td><td>mean</td><td>0.00</td><td>—</td><td><span class="skip">—</span></td></tr>
+</table>
+</section>
+<h2 class="section-heading">Per-Case Details</h2>
+<details open class="case case-pass"><summary><span class="pass">compile</span> <span class="skip">(3/3 pass)</span></summary>
+<table><tr><th>Judge</th><th>Value</th><th>Rationale</th></tr>
+<tr><td>cost_per_test</td><td><span class="pass">1.0</span></td><td class="rationale"><p>$1.40 total, 5 tests, $0.280/test (target $0.50/test). Score=1.000</p></td></tr>
+<tr><td>f1_score</td><td><span class="pass">1.0</span></td><td class="rationale"><p>F1=1.000 P=1.000 R=1.000 (TP=5 FP=0 FN=0)</p></td></tr>
+<tr><td>phase_delta</td><td><span class="pass">0.0</span></td><td class="rationale"><p>Phase1 F1=1.000 Phase2 F1=1.000 delta=+0.000</p></td></tr>
+</table>
+<details open><summary>Input</summary><pre class="output">directory: tests/compile/correctness_e2e/</pre></details>
+<details open><summary>Output files</summary>
+<div class="file-badge">audit-cc.json/audit-cc.json</div>
+<pre class="output">{
+  "test_files_in_scope": 2,
+  "candidates_analyzed": 5,
+  "candidates": [
+    {
+      "candidate": "test_async_tp_pass_correctness",
+      "file": "tests/compile/correctness_e2e/test_async_tp.py",
+      "line": 95,
+      "comparison": "compiled async TP (fuse_gemm_comms=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "yes \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "yes \u2014 async TP fuses gemm+comms changing accumulation order; compilation may select different kernels",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #5: async TP fused distributed compile-pass parity against unfused baseline; Not Strong #1: eager vs compile",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    model_id,\n    async_tp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_async_tp_pass_nvfp4_correctness",
+      "file": "tests/compile/correctness_e2e/test_async_tp.py",
+      "line": 163,
+      "comparison": "compiled async TP+SP (fuse_gemm_comms=True, enable_sp=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "yes \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "yes \u2014 SP+async TP fuses comms changing accumulation order; NVFP4 quantization adds numeric sensitivity",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #5: async TP / fused distributed compile-pass parity against unfused baseline; Not Strong #1: eager vs compile",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    NVFP4_MODEL_ID,\n    async_tp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_generation",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled with sequence parallel (enable_sp=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "yes \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "yes \u2014 SP changes tensor distribution and accumulation patterns; compilation may select different kernels",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #5: sequence parallel parity against unfused baseline; Not Strong #2: non-compiled vs compiled mode parity inside compare_two_settings",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    model_id,\n    tp_sp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_generation_prompt_embeds",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled with sequence parallel + prompt_embeds vs non-compiled regular TP + prompt_embeds",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "yes \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "yes \u2014 SP changes tensor distribution and accumulation patterns; compilation may select different kernels",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #5: sequence parallel parity against unfused baseline; Not Strong #2: non-compiled vs compiled mode parity inside compare_two_settings",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "_compare_sp(\n    \"hmellor/tiny-random-LlamaForCausalLM\",\n    parallel_setup,\n    distributed_backend=\"mp\",\n    ...\n    enable_prompt_embeds=True,\n    method=\"generate\",\n    is_multimodal=False,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_nvfp4_generation",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled with sequence parallel (enable_sp=True, NVFP4) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "yes \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "yes \u2014 SP changes accumulation patterns; NVFP4 quantization adds numeric sensitivity; compilation may select different kernels",
+      "c3_no_strong_contract": "yes \u2014 Not Strong #5: sequence parallel parity against unfused baseline; Not Strong #1: eager vs compile",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "_compare_sp(\n    NVFP4_MODEL_ID,\n    ParallelSetup(tp_size=2, pp_size=1, ...),\n    \"mp\",\n    \"auto\",\n    ...\n    method=\"generate\",\n    is_multimodal=False,\n    dtype=\"bfloat16\",\n)"
+    }
+  ]
+}</pre>
+<div class="file-badge">audit-not-cc.json/audit-not-cc.json</div>
+<pre class="output">{
+  "test_files_in_scope": 2,
+  "candidates_analyzed": 0,
+  "candidates": []
+}</pre>
+<div class="file-badge">events.json</div>
+<pre class="output">[
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-07-13T16:44:06.756Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_started",
+    "timestamp": "2026-07-13T16:44:06.756Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_progress",
+    "timestamp": "2026-07-13T16:44:07.763Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-07-13T16:44:08.455Z"
+  },
+  {
+    "type": "system",
+    "subtype": "hook_response",
+    "timestamp": "2026-07-13T16:44:08.501Z"
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "timestamp": "2026-07-13T16:44:08.524Z",
+    "model": "claude-opus-4-6"
+  },
+  {
+    "type": "assistant",
+    "text": "Running the coordinator agent on the compile correctness_e2e tests.",
+    "tools": [],
+    "timestamp": "2026-07-13T16:44:11.501Z",
+    "_msg_id": "msg_vrtx_019kdtbjiPSq3TFzkzkdZZNq"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Agent",
+        "id": "toolu_vrtx_01AGwDnPqz6zUdNt7Vu1MwK8",
+        "input": {
+          "description": "Run coordinator audit on compile tests",
+          "subagent_type": "vllm-test-audit:coordinator-agent",
+          "prompt": "Run the full audit pipeline on tests/compile/correctness_e2e/",
+          "run_in_background": false
+        }
+      }
+    ],
+    "timestamp": "2026-07-13T16:44:12.282Z",
+    "_msg_id": "msg_vrtx_019kdtbjiPSq3TFzkzkdZZNq"
+  },
+  {
+    "type": "tool_result",
+    "tool_use_id": "toolu_vrtx_01AGwDnPqz6zUdNt7Vu1MwK8",
+    "tool_name": "Agent",
+    "content": "Agent type 'vllm-test-audit:coordinator-agent' not found. Available agents: claude, Explore, general-purpose, Plan, statusline-setup, torch-compile:aot-expert-agent, torch-compile:compile-debug, torch-compile:dynamo-expert-agent, torch-compile:inductor-expert-agent",
+    "is_error": true,
+    "timestamp": "2026-07-13T16:44:12.288Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:14.764Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.219Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.219Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.219Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.220Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.221Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.221Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.222Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.222Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.729Z"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "timestamp": "2026-07-13T16:44:15.730Z"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [],
+    "timestamp": "2026-07-13T16:44:15.732Z",
+    "_msg_id": "msg_vrtx_01KiP4nHnueGf3M13axXgzut"
+  },
+  {
+    "type": "assistant",
+    "text": "The `vllm-test-audit:coordinator-agent` agent type is not available in this environment. Let me investigate what's available and how to run this audit.",
+    "tools": [],
+    "timestamp": "2026-07-13T16:44:16.630Z",
+    "_msg_id": "msg_vrtx_01KiP4nHnueGf3M13axXgzut"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Bash",
+        "id": "toolu_vrtx_017hAtZcTkXCgtHCSKq1vi9u",
+        "input": {
+          "command": "ls -la /tmp/agent-eval/2026-07-13-opus/cases/compile/",
+          "description": "List files in compile case directory"
+        }
+      }
+    ],
+    "timestamp": "2026-07-13T16:44:17.537Z",
+    "_msg_id": "msg_vrtx_01KiP4nHnueGf3M13axXgzut"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Bash",
+        "id": "toolu_vrtx_01FQycutUAsX8bvjA1qj91bo",
+        "input": {
+          "command": "find /home/devuser/projects/vllm-eval-harness -name \"*.md\" -path \"*agents*\" -o -name \"*.md\" -path \"*coordinator*\" | head -20",
+          "description": "Find coordinator agent definition files"
+        }
+      }
+    ],
+    "timestamp": "2026-07-13T16:44:18.436Z",
+    "_msg_id": "msg_vrtx_01KiP4nHnueGf3M13axXgzut"
+  },
+  {
+    "type": "assistant",
+    "text": "",
+    "tools": [
+      {
+        "name": "Bash",
+        "id": "toolu_vrtx_01AtSqqZuHMRHdNZskni2Lgs",
+        "input": {
+          "command": "find /home/devuser/projects/vllm-eval-harness -name \"*.md\" -path \"*/.claude/agents/*\" 2&gt;/dev/null | head -20",
+
+... truncated (4024 lines total)</pre>
+<div class="file-badge">review-cc.json/review-cc.json</div>
+<pre class="output">{
+  "test_files_in_scope": 2,
+  "candidates_analyzed": 5,
+  "phase_1_agreed": 5,
+  "phase_1_reclassified": 0,
+  "candidates": [
+    {
+      "candidate": "test_async_tp_pass_correctness",
+      "phase_1_classification": "COINCIDENTALLY_CORRECT",
+      "phase_1_coincidentally_correct": true,
+      "review": "AGREE",
+      "file": "tests/compile/correctness_e2e/test_async_tp.py",
+      "line": 95,
+      "comparison": "compiled async TP (fuse_gemm_comms=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "agree \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "agree \u2014 async TP fuses gemm+comms, changing accumulation order; verified no VLLM_BATCH_INVARIANT in test or conftest",
+      "c3_no_strong_contract": "agree \u2014 Not Strong #5: async TP fused distributed compile-pass vs unfused baseline; Not Strong #1: compiled vs non-compiled",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    model_id,\n    async_tp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_async_tp_pass_nvfp4_correctness",
+      "phase_1_classification": "COINCIDENTALLY_CORRECT",
+      "phase_1_coincidentally_correct": true,
+      "review": "AGREE",
+      "file": "tests/compile/correctness_e2e/test_async_tp.py",
+      "line": 163,
+      "comparison": "compiled async TP+SP (fuse_gemm_comms=True, enable_sp=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "agree \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "agree \u2014 SP+async TP fuses comms changing accumulation order; NVFP4 adds numeric sensitivity",
+      "c3_no_strong_contract": "agree \u2014 Not Strong #5: async TP + SP fused compile-pass vs unfused baseline",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    NVFP4_MODEL_ID,\n    async_tp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_generation",
+      "phase_1_classification": "COINCIDENTALLY_CORRECT",
+      "phase_1_coincidentally_correct": true,
+      "review": "AGREE",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled with sequence parallel (enable_sp=True) vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "agree \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "agree \u2014 SP changes tensor distribution and accumulation patterns; compilation selects different kernels",
+      "c3_no_strong_contract": "agree \u2014 Not Strong #5: sequence parallel parity against unfused baseline; Not Strong #2: non-compiled vs compiled inside compare_two_settings",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "compare_two_settings(\n    model_id,\n    tp_sp_args,\n    tp_args,\n    method=\"generate\",\n    force_v1_runner=True,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_generation_prompt_embeds",
+      "phase_1_classification": "COINCIDENTALLY_CORRECT",
+      "phase_1_coincidentally_correct": true,
+      "review": "AGREE",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled SP + prompt_embeds vs non-compiled TP + prompt_embeds",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "agree \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "agree \u2014 SP changes accumulation patterns; prompt_embeds path does not establish a stronger contract",
+      "c3_no_strong_contract": "agree \u2014 Not Strong #5: sequence parallel vs unfused baseline; prompt_embeds on both sides doesn't change the SP vs non-SP comparison",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "_compare_sp(\n    \"hmellor/tiny-random-LlamaForCausalLM\",\n    parallel_setup,\n    distributed_backend=\"mp\",\n    ...\n    enable_prompt_embeds=True,\n)"
+    },
+    {
+      "candidate": "test_tp_sp_nvfp4_generation",
+      "phase_1_classification": "COINCIDENTALLY_CORRECT",
+      "phase_1_coincidentally_correct": true,
+      "review": "AGREE",
+      "file": "tests/compile/correctness_e2e/test_sequence_parallel.py",
+      "line": 297,
+      "comparison": "compiled SP with NVFP4 vs non-compiled regular TP",
+      "oracle": "exact dict equality (compare_two_settings)",
+      "helper": "compare_two_settings",
+      "batch_invariant_enabled": false,
+      "code_path_verified": false,
+      "fixtures": "@create_new_process_for_each_test()",
+      "c1_weak_oracle": "agree \u2014 compare_two_settings does exact dict equality on generated output",
+      "c2_realistic_breakage": "agree \u2014 SP changes accumulation patterns; NVFP4 quantization adds numeric sensitivity",
+      "c3_no_strong_contract": "agree \u2014 Not Strong #5: sequence parallel vs unfused baseline; Not Strong #1: compiled vs non-compiled",
+      "classification": "COINCIDENTALLY_CORRECT",
+      "coincidentally_correct": true,
+      "code_snippet": "_compare_sp(\n    NVFP4_MODEL_ID,\n    ParallelSetup(tp_size=2, pp_size=1, ...),\n    ...\n    method=\"generate\",\n)"
+    }
+  ]
+}</pre>
+</details>
+</details>
+
+<script>
+(function () {
+  var btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  function paint() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    btn.textContent = t === 'dark' ? '\u2600' : '\u263E';
+    btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    btn.title = btn.getAttribute('aria-label');
+  }
+  btn.addEventListener('click', function () {
+    var current = document.documentElement.getAttribute('data-theme') || 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('eval-report-theme', next); } catch (e) {}
+    paint();
+  });
+  paint();
+})();
+</script>
+<script>
+(function () {
+  document.querySelectorAll('.img-compare').forEach(function (widget) {
+    var tabs = widget.querySelectorAll('.img-compare-tab');
+    var panels = widget.querySelectorAll('.img-compare-panel');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        var target = widget.querySelector('#' + tab.dataset.panel);
+        if (target) target.classList.add('active');
+      });
+    });
+    var swipe = widget.querySelector('.img-compare-swipe');
+    if (swipe) {
+      (function (sw) {
+        var sl = sw.querySelector('input[type="range"]');
+        var ref = sw.querySelector('.swipe-ref');
+        var ln = sw.querySelector('.swipe-line');
+        if (sl && ref) {
+          function update() {
+            var p = sl.value;
+            ref.style.clipPath = 'inset(0 ' + (100 - p) + '% 0 0)';
+            if (ln) ln.style.marginLeft = p + '%';
+          }
+          sl.addEventListener('input', update);
+          update();
+        }
+      })(swipe);
+    }
+    var onion = widget.querySelector('.img-compare-onion');
+    if (onion) {
+      (function (on) {
+        var sl = on.querySelector('input[type="range"]');
+        var top = on.querySelector('.onion-top');
+        var lbl = on.querySelector('.onion-label');
+        if (sl && top) {
+          function update() {
+            top.style.opacity = sl.value / 100;
+            if (lbl) lbl.textContent = 'Generated opacity: ' + sl.value + '%';
+          }
+          sl.addEventListener('input', update);
+          update();
+        }
+      })(onion);
+    }
+  });
+})();
+</script>
+<script>
+(function () {
+  document.querySelectorAll('.sample-tabs').forEach(function (bar) {
+    bar.querySelectorAll('.sample-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var group = tab.closest('td');
+        group.querySelectorAll('.sample-tab').forEach(function (t) {
+          t.setAttribute('aria-selected', 'false');
+        });
+        group.querySelectorAll('.sample-panel').forEach(function (p) {
+          p.classList.remove('active');
+        });
+        tab.setAttribute('aria-selected', 'true');
+        var target = group.querySelector('#' + tab.dataset.panel);
+        if (target) target.classList.add('active');
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

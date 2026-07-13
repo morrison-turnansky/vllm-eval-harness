@@ -35,13 +35,34 @@ Run the plugin end-to-end with token capture and judge scoring. Requires:
 - The `ai-marketplace` plugin directory at `/home/devuser/projects/ai-marketplace`
 - A local vLLM checkout at `/home/devuser/projects/vllm`
 
+#### Full pipeline (Phase 1 + Phase 2)
+
 ```bash
 # Run a single case (fast iteration):
 /eval-run --config /home/devuser/projects/vllm-eval-harness/eval.yaml \
-  --model claude-opus-4-6 --cases basic_correctness
+  --model claude-opus-4-6 --cases compile
 
 # Run all cases:
 /eval-run --config /home/devuser/projects/vllm-eval-harness/eval.yaml \
+  --model claude-opus-4-6
+```
+
+#### Phase 1 only (audit-agent)
+
+Runs audit-agent directly without the coordinator or review-agent. Generates
+a per-case FP/FN report (`fp_fn_report.md`) as a reviewable artifact.
+
+```bash
+# Run a single case:
+/eval-run --config /home/devuser/projects/vllm-eval-harness/eval-phase1.yaml \
+  --model claude-opus-4-6 --cases compile
+
+# Run all cases:
+/eval-run --config /home/devuser/projects/vllm-eval-harness/eval-phase1.yaml \
+  --model claude-opus-4-6
+
+# Optimize the audit contract automatically:
+/eval-optimize --config /home/devuser/projects/vllm-eval-harness/eval-phase1.yaml \
   --model claude-opus-4-6
 ```
 
