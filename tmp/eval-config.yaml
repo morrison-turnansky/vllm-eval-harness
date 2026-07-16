@@ -1,6 +1,6 @@
-baseline: ''
+baseline: 2026-07-13-claude-opus-4-6
 gold: false
 model: claude-opus-4-6
 no_llm_judges: false
-run_id: 2026-07-13-claude-opus-4-6
+run_id: optimize-2026-07-13-iter-3
 skill: ''

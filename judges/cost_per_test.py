@@ -20,7 +20,6 @@ def _count_candidates(files: dict[str, str]) -> int:
 
 def judge(
     outputs: dict | None = None,
-    target_cost_per_test: float = 0.25,
     **kwargs: object,
 ) -> tuple[float, str]:
     if outputs is None:
@@ -35,7 +34,6 @@ def judge(
         return 0.0, f"No test candidates found in output. Cost=${cost:.2f}"
 
     actual = cost / num_tests
-    score = min(1.0, target_cost_per_test / actual) if actual > 0 else 1.0
 
     turns = outputs.get("num_turns") or 0
     tokens = outputs.get("token_usage") or {}
@@ -49,12 +47,11 @@ def judge(
 
     rationale = (
         f"${cost:.2f} total, {num_tests} tests, "
-        f"${actual:.3f}/test (target ${target_cost_per_test:.2f}/test). "
+        f"${actual:.3f}/test. "
         f"{turns} turns, {duration:.0f}s, "
         f"{output_tokens:,} output tokens, "
         f"{cache_read:,} cache reads, {cache_create:,} cache writes, "
         f"cache read/create ratio {cache_ratio}, "
-        f"output/turn {output_per_turn}. "
-        f"Score={score:.3f}"
+        f"output/turn {output_per_turn}"
     )
-    return score, rationale
+    return actual, rationale

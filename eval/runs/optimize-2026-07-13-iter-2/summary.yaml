@@ -1,0 +1,32 @@
+judges:
+  cost_per_test:
+    mean: 0.6313131313131313
+    pass_rate: null
+  f1_score:
+    mean: 1.0
+    pass_rate: null
+  phase_delta:
+    mean: 0.0
+    pass_rate: null
+per_case:
+  compile:
+    cost_per_test:
+      judge_type: code
+      rationale: $1.98 total, 5 tests, $0.396/test (target $0.25/test). 24 turns,
+        369s, 19,811 output tokens, 757,728 cache reads, 176,940 cache writes, cache
+        read/create ratio 4.3:1, output/turn 825. Score=0.631
+      value: 0.6313131313131313
+    f1_score:
+      judge_type: code
+      rationale: F1=1.000 P=1.000 R=1.000 (TP=5 FP=0 FN=0)
+      value: 1.0
+    phase_delta:
+      judge_type: code
+      rationale: Phase1 F1=1.000 Phase2 F1=1.000 delta=+0.000
+      value: 0.0
+run_id: optimize-2026-07-13-iter-2
+run_metrics:
+  cache_hit_rate: 0.810663
+  cost_per_mtok_usd: 2.0744
+  cost_per_turn_usd: 0.0825
+  output_tokens_per_turn: 825.46

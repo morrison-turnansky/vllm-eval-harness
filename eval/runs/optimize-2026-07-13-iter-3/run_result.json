@@ -1,0 +1,64 @@
+{
+  "exit_code": 0,
+  "duration_s": 343.3,
+  "wall_clock_s": 343.4,
+  "cost_usd": 1.98,
+  "token_usage": {
+    "input": 44,
+    "output": 16930,
+    "cache_read": 1086770,
+    "cache_create": 161612
+  },
+  "num_turns": 32,
+  "per_model_usage": {
+    "claude-opus-4-6": {
+      "input": 44,
+      "output": 16930,
+      "cache_read": 1086770,
+      "cache_create": 161612,
+      "cost_usd": 1.9769300000000003
+    }
+  },
+  "per_model_turns": {
+    "claude-opus-4-6": 32
+  },
+  "num_cases": 1,
+  "model": "claude-opus-4-6",
+  "agent": "claude-code",
+  "agent_version": "2.1.207 (Claude Code)",
+  "execution_mode": "case",
+  "eval_params": {
+    "skill": "",
+    "skill_args": "Use the coordinator agent (subagent_type: vllm-test-audit:coordinator-agent) to run the full audit pipeline on {directory}. Run in FOREGROUND (run_in_background: false) and wait for completion. The agent writes audit-cc.json, audit-not-cc.json, and review-cc.json to the cwd.",
+    "execution_mode": "case",
+    "max_budget_usd": 5.0,
+    "timeout_s": 3600,
+    "effort": "high"
+  },
+  "per_case": {
+    "compile": {
+      "exit_code": 0,
+      "duration_s": 343.3,
+      "token_usage": {
+        "input": 44,
+        "output": 16930,
+        "cache_read": 1086770,
+        "cache_create": 161612
+      },
+      "cost_usd": 1.9769300000000003,
+      "num_turns": 32,
+      "per_model_usage": {
+        "claude-opus-4-6": {
+          "input": 44,
+          "output": 16930,
+          "cache_read": 1086770,
+          "cache_create": 161612,
+          "cost_usd": 1.9769300000000003
+        }
+      },
+      "per_model_turns": {
+        "claude-opus-4-6": 32
+      }
+    }
+  }
+}

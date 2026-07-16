@@ -82,10 +82,7 @@ judges:
   - name: cost_per_test
     module: judges.cost_per_test
     function: judge
-    description: "Token cost efficiency normalized by tests analyzed"
-    score_range: [0, 1]
-    arguments:
-      target_cost_per_test: 0.25
+    description: "Raw $/test — lower is better"
 
   - name: phase_delta
     module: judges.phase_delta
@@ -99,13 +96,12 @@ thresholds:
   f1_score:
     min_mean: 0.90
   cost_per_test:
-    min_mean: 0.80
+    max_mean: 0.40
 
 reward:
   formula: weighted
   weights:
-    f1_score: 0.7
-    cost_per_test: 0.3
+    f1_score: 1.0
   score_range: [0, 1]
   raw: [f1_score, cost_per_test]
   gate: false

@@ -1,4 +1,0 @@
-max_iterations: '3'
-model: claude-opus-4-6
-run_id: optimize-2026-07-13
-target_judge: ''

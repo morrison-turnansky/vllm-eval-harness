@@ -1,0 +1,5 @@
+tests/compile/correctness_e2e,test_async_tp.py,test_async_tp_pass_correctness
+tests/compile/correctness_e2e,test_async_tp.py,test_async_tp_pass_nvfp4_correctness
+tests/compile/correctness_e2e,test_sequence_parallel.py,test_tp_sp_generation
+tests/compile/correctness_e2e,test_sequence_parallel.py,test_tp_sp_generation_prompt_embeds
+tests/compile/correctness_e2e,test_sequence_parallel.py,test_tp_sp_nvfp4_generation

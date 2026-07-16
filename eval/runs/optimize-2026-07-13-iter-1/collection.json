@@ -1,0 +1,8 @@
+{
+  "compile": {
+    "audit-cc.json": 1,
+    "audit-not-cc.json": 1,
+    "review-cc.json": 1,
+    "_modified": 1
+  }
+}
