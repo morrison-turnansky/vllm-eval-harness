@@ -105,7 +105,7 @@
       "code_snippet": "assert bunched_text == spaced_text"
     },
     {
-      "candidate": "test_batch_inference_correctness",
+      "candidate": "",
       "file": "tests/v1/e2e/spec_decode/test_lora_with_spec_decode.py",
       "line": 52,
       "comparison": "exact text equality (ref_output.outputs[0].text == spec_output.outputs[0].text), matches > 90% threshold",
