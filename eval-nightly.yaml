@@ -1,0 +1,98 @@
+name: nightly-triage-eval
+description: >-
+  Classification and grouping accuracy of the nightly CI triage skill.
+  Per-case scores drive optimization; run pooled_metrics.py on the
+  completed run for true cross-dataset macro F1 and ARI.
+
+skill: triage-contract
+
+optimize:
+  target: triage-contract
+
+execution:
+  mode: case
+  arguments: >-
+    Triage the failures provided in {input_file}.
+    Write triage-output.json to cwd.
+  timeout: 3600
+  max_budget_usd: 10.00
+
+runner:
+  type: claude-code
+  effort: high
+  plugin_dirs:
+    - ./vllm-nightly-audit
+
+permissions:
+  allow:
+    - "Read"
+    - "Edit"
+    - "Write"
+    - "Bash(*)"
+    - "Agent(*)"
+    - "Skill(*)"
+    - "WebFetch(*)"
+    - "WebSearch(*)"
+    - "SendMessage(*)"
+    - "TaskCreate"
+    - "TaskUpdate"
+    - "TaskList"
+    - "TaskGet"
+    - "mcp__*"
+
+traces:
+  stdout: true
+  stderr: true
+  events: true
+  metrics: true
+
+dataset:
+  path: nightly-cases
+  schema: |
+    Each case has an 'umbrella_issue' number and an 'input_file' path
+    to pre-computed serialized JobFailure JSON.
+
+outputs:
+  - path: triage-output.json
+    schema: "List of FailureGroup JSON objects from triage"
+
+judges:
+  - name: classification_f1
+    module: judges.classification_f1
+    function: judge
+    description: "Macro F1 on regression_type (torch/triton/vllm/pre_existing)"
+    score_range: [0, 1]
+    arguments:
+      datasets_dir: datasets
+
+  - name: grouping_ari
+    module: judges.grouping_ari
+    function: judge
+    description: "Adjusted Rand Index on failure grouping"
+    score_range: [0, 1]
+    arguments:
+      datasets_dir: datasets
+
+  - name: cost_per_group
+    module: judges.cost_per_group
+    function: judge
+    description: "Cost efficiency normalized by target $/group"
+    score_range: [0, 1]
+    arguments:
+      target_cost_per_group: 1.00
+
+thresholds:
+  classification_f1:
+    min_mean: 0.80
+  grouping_ari:
+    min_mean: 0.70
+
+reward:
+  formula: weighted
+  weights:
+    classification_f1: 0.333
+    grouping_ari: 0.333
+    cost_per_group: 0.334
+  score_range: [0, 1]
+  raw: [classification_f1, grouping_ari, cost_per_group]
+  gate: false
